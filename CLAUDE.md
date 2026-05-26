@@ -309,13 +309,15 @@ res.status(400).json({ error: 'message', details?: [...] })
   - 📝 commit: `feat(web): setup nextjs tailwind shadcn`
   - [x] FIX: React version conflict (root node_modules/react=18.3.1 vs web=19.2.6) | fix: เพิ่ม react@^19.0.0 เป็น root dependency + overrides
 
-- [ ] 1.6 ตั้งค่า Jest + Supertest สำหรับ API test
-  - 🧪 test: `npm test` → ผ่าน test เปล่า 1 ชุด
+- [x] 1.6 ตั้งค่า Jest + Supertest สำหรับ API test
+  - 🧪 test: `npm test --workspace=apps/api` → PASS tests/health.test.ts (1 passed) ✅
   - 📝 commit: `chore(api): setup jest and supertest`
+  - หมายเหตุ: แยก src/app.ts (Express app) ออกจาก src/index.ts (server start) เพื่อให้ Supertest import app ได้โดยไม่ bind port ซ้ำ
 
-- [ ] 1.7 สร้าง `.dockerignore` (api + web)
-  - 🧪 test: `docker build` → ไม่มี `node_modules` จาก host ถูก copy เข้า image
+- [x] 1.7 สร้าง `.dockerignore` (api + web)
+  - 🧪 test: `docker build` → context ขนาด 201KB (api) / 12KB (web) — ยืนยันว่า node_modules ไม่ถูก copy ✅
   - 📝 commit: `chore: add dockerignore`
+  - หมายเหตุ: ใช้ `.dockerignore` ไฟล์เดียวที่ root เพราะทั้งสอง Dockerfile ใช้ `context: .`
 
 - [ ] 1.8 ตั้งค่า ESLint + Prettier + lint-staged + Husky
   - 🧪 test: `npm run lint` → ไม่มี error, commit ไฟล์ที่ format ผิด → hook บล็อก

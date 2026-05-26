@@ -1,0 +1,35 @@
+# Dependencies — installed inside the container by npm ci
+**/node_modules
+
+# Build outputs
+apps/api/dist
+apps/web/.next
+apps/web/out
+
+# Test artifacts
+**/coverage
+**/.nyc_output
+
+# Environment — injected via env_file / environment in docker-compose
+.env
+.env.*
+!.env.example
+
+# Version control
+.git
+.gitignore
+
+# Editor / OS noise
+.vscode
+.idea
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# TypeScript incremental build info
+**/*.tsbuildinfo
+
+# Prisma generated client (regenerated inside container)
+packages/db/node_modules
+packages/db/prisma/generated

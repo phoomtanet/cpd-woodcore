@@ -3,7 +3,10 @@
     "allow": [
       "Bash(xargs grep '\"version\"')",
       "Bash(npm ls *)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(npm test *)",
+      "Bash(docker build *)",
+      "Bash(docker rmi *)"
     ]
   }
 }
