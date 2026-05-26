@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import prisma from '@cpd/db'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -7,8 +8,13 @@ const PORT = process.env.PORT || 4000
 app.use(cors())
 app.use(express.json())
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime() })
+app.get('/api/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ status: 'ok', db: 'connected', uptime: process.uptime() })
+  } catch {
+    res.status(503).json({ status: 'error', db: 'disconnected', uptime: process.uptime() })
+  }
 })
 
 app.listen(PORT, () => {

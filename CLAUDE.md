@@ -184,6 +184,58 @@ model StockTransaction {
 
 ---
 
+## Dev Standards (บังคับใช้ทุก Phase)
+
+> กฎเหล่านี้ป้องกันบัคที่พบบ่อยที่สุด — ต้องทำก่อนเขียน feature จริง
+
+### 1. Input Validation — Zod (API)
+ทุก route ที่รับ body/query ต้อง validate ด้วย Zod ก่อน controller
+```ts
+const schema = z.object({ name: z.string().min(1), qty: z.number().int().positive() })
+const data = schema.parse(req.body)  // throws ZodError → global handler จัดการ
+```
+
+### 2. Global Error Handler (Express)
+middleware ตัวสุดท้ายใน `apps/api/src/index.ts` — format error response สม่ำเสมอ
+```ts
+app.use((err, req, res, next) => {
+  if (err instanceof ZodError) return res.status(400).json({ error: err.errors })
+  if (err instanceof PrismaClientKnownRequestError) { /* handle P2002 unique, P2025 not found */ }
+  res.status(500).json({ error: 'Internal server error' })
+})
+```
+
+### 3. Prisma Transaction สำหรับ Stock Operations
+Stock In/Out/Adjust/Transfer ต้อง update `currentStock` + สร้าง `StockTransaction` ใน transaction เดียวกัน — ถ้า crash กลางคัน stock จะไม่ผิด
+```ts
+await prisma.$transaction([
+  prisma.product.update({ where: { id }, data: { currentStock: { increment: qty } } }),
+  prisma.stockTransaction.create({ data: { ... } })
+])
+```
+
+### 4. Env Validation ตอน Startup
+validate ทุก required env var ก่อน server เริ่ม — ถ้าขาดให้ crash ทันทีพร้อม error ชัดเจน
+```ts
+const required = ['DATABASE_URL', 'JWT_SECRET']
+required.forEach(k => { if (!process.env[k]) throw new Error(`Missing env: ${k}`) })
+```
+
+### 5. Consistent API Response Format
+```ts
+// Success
+res.json({ data: result, message: 'ok' })
+// Error (จาก global handler)
+res.status(400).json({ error: 'message', details?: [...] })
+```
+
+### 6. ESLint + Prettier
+- `@typescript-eslint/no-explicit-any` — ห้ามใช้ `any`
+- `@typescript-eslint/no-unused-vars` — ห้ามมี unused variables
+- Prettier format ก่อน commit ทุกครั้ง (ผ่าน lint-staged)
+
+---
+
 ## Task Management Rules (สำหรับ AI)
 
 > 1. **เริ่ม task** → เปลี่ยน `[ ]` เป็น `[~]`
@@ -242,9 +294,15 @@ model StockTransaction {
 
   - [x] FIX #2: IDE แสดง error ว่า `url`/`directUrl` ไม่รองรับ | fix: false positive จาก VS Code Prisma extension ที่ใช้ rules Prisma 6 — Prisma 5.22.0 รองรับปกติ
 
-- [ ] 1.4 ตั้งค่า Express API พื้นฐาน + เชื่อม PostgreSQL ผ่าน Prisma + Health endpoint
-  - 🧪 test: `GET /api/health` → `{ status: "ok", db: "connected", uptime: 123 }`
+- [x] 1.4 ตั้งค่า Express API พื้นฐาน + เชื่อม PostgreSQL ผ่าน Prisma + Health endpoint
+  - 🧪 test: `GET http://localhost:3061/api/health` → `{ status: "ok", db: "connected", uptime: 8.27 }` ✅
   - 📝 commit: `feat(api): setup express with prisma and health endpoint`
+
+  - [x] FIX #1: `@prisma/client did not initialize` | fix: เพิ่ม `RUN cd packages/db && npx prisma generate` ใน Dockerfile
+    - 📝 commit: `fix(api): run prisma generate in dockerfile`
+
+  - [x] FIX #2: `libssl.so.1.1: No such file or directory` บน Alpine | fix: เพิ่ม `RUN apk add --no-cache openssl`
+    - 📝 commit: `fix(api): add openssl to alpine dockerfile`
 
 - [ ] 1.5 ตั้งค่า Next.js + Tailwind CSS + shadcn/ui
   - 🧪 test: `npm run dev` → หน้าแรกแสดงผลได้ ไม่มี error
@@ -253,6 +311,26 @@ model StockTransaction {
 - [ ] 1.6 ตั้งค่า Jest + Supertest สำหรับ API test
   - 🧪 test: `npm test` → ผ่าน test เปล่า 1 ชุด
   - 📝 commit: `chore(api): setup jest and supertest`
+
+- [ ] 1.7 สร้าง `.dockerignore` (api + web)
+  - 🧪 test: `docker build` → ไม่มี `node_modules` จาก host ถูก copy เข้า image
+  - 📝 commit: `chore: add dockerignore`
+
+- [ ] 1.8 ตั้งค่า ESLint + Prettier + lint-staged + Husky
+  - 🧪 test: `npm run lint` → ไม่มี error, commit ไฟล์ที่ format ผิด → hook บล็อก
+  - 📝 commit: `chore: add eslint prettier lint-staged`
+
+- [ ] 1.9 เพิ่ม Env Validation + Global Error Handler ใน API
+  - 🧪 test: ลบ `JWT_SECRET` จาก .env → server ไม่ start พร้อม error ชัดเจน, POST body ผิด format → 400 JSON ไม่ crash
+  - 📝 commit: `feat(api): env validation and global error handler`
+
+- [ ] 1.10 ติดตั้ง Zod ใน API + สร้าง validation schema ตัวอย่าง
+  - 🧪 test: POST `/api/products` โดยไม่ส่ง `name` → 400 `{ error: [{field: "name", message: "Required"}] }`
+  - 📝 commit: `feat(api): add zod request validation`
+
+- [ ] 1.11 สร้าง Seed script (admin user + สินค้าตัวอย่าง)
+  - 🧪 test: `npx prisma db seed` → มี admin@cpd.com + สินค้า 5 รายการใน DB
+  - 📝 commit: `chore(db): add seed script`
 
 ---
 
@@ -313,6 +391,8 @@ model StockTransaction {
 ---
 
 ### Phase 4 — ระบบคลังสินค้า (Inventory)
+
+> ⚠️ ทุก stock operation ต้องใช้ `prisma.$transaction([...])` — ดู Dev Standards ข้อ 3
 
 - [ ] 4.1 API: Stock In + อัปเดต currentStock
   - 🧪 test: POST stock/in → currentStock เพิ่มขึ้น, transaction บันทึก
