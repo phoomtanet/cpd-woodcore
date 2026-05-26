@@ -44,10 +44,13 @@ cpd-woodcore/
 ├── apps/
 │   ├── api/
 │   │   ├── src/
-│   │   │   ├── routes/         # auth, products, stock, reports, users
-│   │   │   ├── controllers/
-│   │   │   ├── middleware/     # authMiddleware, roleMiddleware
-│   │   │   └── utils/
+│   │   │   ├── routes/         # HTTP routing only — chains middleware + controller
+│   │   │   ├── controllers/    # req/res handling — calls service, returns response
+│   │   │   ├── services/       # business logic — calls repository, ไม่รู้จัก req/res
+│   │   │   ├── repositories/   # data access — Prisma queries only, ไม่มี business logic
+│   │   │   ├── middleware/     # authenticate, requireRole, validate, errorHandler
+│   │   │   ├── types/          # TypeScript declarations (express.d.ts)
+│   │   │   └── utils/          # pure helpers
 │   │   ├── tests/
 │   │   │   ├── auth.test.ts
 │   │   │   ├── products.test.ts
@@ -234,6 +237,46 @@ res.status(400).json({ error: 'message', details?: [...] })
 - `@typescript-eslint/no-unused-vars` — ห้ามมี unused variables
 - Prettier format ก่อน commit ทุกครั้ง (ผ่าน lint-staged)
 
+### 7. Controller-Service-Repository Pattern
+แยกความรับผิดชอบ 3 ชั้น — แต่ละชั้นรู้แค่ชั้นถัดไป ไม่ข้ามชั้น
+
+| ชั้น | ความรับผิดชอบ | รู้จัก | ไม่รู้จัก |
+|---|---|---|---|
+| **Route** | HTTP path + middleware chain | middleware, controller | business logic, DB |
+| **Controller** | รับ `req` → เรียก service → ส่ง `res` | service | Prisma, business rules |
+| **Service** | business logic, validation ระดับ domain | repository | `req`, `res`, HTTP status |
+| **Repository** | Prisma query เท่านั้น | PrismaClient | business rules, HTTP |
+
+```ts
+// routes/products.ts — routing only
+router.post('/', authenticate, requireRole('manager','admin'), validate(schema), ProductController.create)
+
+// controllers/product.controller.ts — HTTP in/out
+async create(req: Request, res: Response, next: NextFunction) {
+  try {
+    const product = await ProductService.create(req.body, req.user!.userId)
+    res.status(201).json({ data: product, message: 'ok' })
+  } catch (err) { next(err) }
+}
+
+// services/product.service.ts — business logic
+async create(dto: CreateProductDto, userId: number) {
+  const existing = await ProductRepository.findBySku(dto.sku)
+  if (existing) throw new ConflictError('SKU already exists')
+  return ProductRepository.create(dto)
+}
+
+// repositories/product.repository.ts — Prisma only
+async create(data: Prisma.ProductCreateInput) {
+  return prisma.product.create({ data })
+}
+```
+
+**กฎข้าม:**
+- Controller ห้าม import Prisma โดยตรง → ต้องผ่าน Service
+- Service ห้าม import `req`/`res` หรือ HTTP status codes
+- Repository ห้ามมี `if/else` business logic — query เท่านั้น
+
 ---
 
 ## Task Management Rules (สำหรับ AI)
@@ -345,8 +388,8 @@ res.status(400).json({ error: 'message', details?: [...] })
   - 🧪 test: credentials ถูก → 200 + JWT ✅ | password ผิด → 401 ✅ | user ไม่มี → 401 ✅ | inactive → 401 ✅ | missing field → 400 ✅
   - 📝 commit: `feat(api): auth login with jwt`
 
-- [ ] 2.2 API: middleware ตรวจสอบ JWT + Role Guard
-  - 🧪 test: ไม่มี token → 401, role ไม่ถึง → 403
+- [x] 2.2 API: middleware ตรวจสอบ JWT + Role Guard
+  - 🧪 test: ไม่มี token → 401 ✅ | token ผิด → 401 ✅ | staff POST products → 403 ✅ | manager/admin → 201 ✅ | GET /me valid → 200 ✅
   - 📝 commit: `feat(api): auth middleware and role guard`
 
 - [ ] 2.3 API: CRUD user + เปลี่ยน role (admin only)

@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import prisma from '@cpd/db'
 import validate from '../middleware/validate'
+import { authenticate } from '../middleware/auth'
 
 const router = Router()
 
@@ -39,6 +40,22 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
       },
       message: 'ok',
     })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/me', authenticate, async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+    })
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+    res.json({ data: user, message: 'ok' })
   } catch (err) {
     next(err)
   }

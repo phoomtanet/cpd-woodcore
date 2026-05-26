@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import validate from '../middleware/validate'
+import { authenticate, requireRole } from '../middleware/auth'
 
 const router = Router()
 
@@ -16,9 +17,15 @@ const createProductSchema = z.object({
   minStock: z.number().int().nonnegative().default(0),
 })
 
-// POST /api/products — example of Zod-validated route (full CRUD in Phase 3)
-router.post('/', validate(createProductSchema), (_req, res) => {
-  res.status(201).json({ data: null, message: 'ok' })
-})
+// POST /api/products — manager+ only (full CRUD in Phase 3)
+router.post(
+  '/',
+  authenticate,
+  requireRole('manager', 'admin'),
+  validate(createProductSchema),
+  (_req, res) => {
+    res.status(201).json({ data: null, message: 'ok' })
+  }
+)
 
 export default router
