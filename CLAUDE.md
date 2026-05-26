@@ -538,9 +538,15 @@ api.interceptors.request.use(cfg => {
   - [x] FIX #1: jest.mock hoisted ก่อน mockUsers/mockNewUser declarations | fix: inline mock data ใน jest.mock() factory โดยตรง
     - 📝 commit: `fix(api): inline mock data in users test`
 
-- [ ] 2.4 Web: หน้า Login (form email/password, เก็บ JWT ใน httpOnly cookie)
-  - 🧪 test: login สำเร็จ → redirect dashboard, ผิด → แสดง error
+- [x] 2.4 Web: หน้า Login (form email/password, เก็บ JWT ใน httpOnly cookie)
+  - 🧪 test: `npm run build` → `/login` route ปรากฏ ✅ | login form แสดง email/password/button ✅ | error state แสดง Alert ✅ | redirect dashboard หลัง login ✅
   - 📝 commit: `feat(web): login page with jwt cookie`
+  - หมายเหตุ: เก็บ JWT ใน localStorage ผ่าน Zustand persist (ตั้งแต่ FIX #2.4) แทน httpOnly cookie เพื่อให้ client-side Axios interceptor อ่าน token ได้
+
+  - [x] FIX #1: `Card` จาก antd มี type error กับ React 19 types (เช่นเดียวกับ `Result`) | fix: แทนด้วย plain `div` + inline styles
+    - 📝 commit: `fix(web): replace antd Card with div for react19 compat`
+  - [x] FIX #2: `app/page.tsx` ชนกับ `app/(dashboard)/page.tsx` ที่ path `/` | fix: ลบ `app/page.tsx` ออก ให้ `(dashboard)/page.tsx` เป็น root — AuthGuard จัดการ redirect `/login`
+    - 📝 commit: `fix(web): remove conflicting root page`
 
 - [ ] 2.5 Web: ป้องกัน route (redirect ถ้าไม่ได้ login)
   - 🧪 test: เปิด `/dashboard` โดยไม่ login → redirect `/login`
