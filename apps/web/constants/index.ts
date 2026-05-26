@@ -1,0 +1,21 @@
+export const ROUTES = {
+  LOGIN: '/login',
+  DASHBOARD: '/',
+  PRODUCTS: '/products',
+  STOCK_IN: '/stock-in',
+  STOCK_OUT: '/stock-out',
+  STOCK_ADJUST: '/stock-adjust',
+  STOCK_TRANSFER: '/stock-transfer',
+  STOCK_CARD: '/stock-card',
+  ALERTS: '/alerts',
+  REPORTS: '/reports',
+  USERS: '/users',
+} as const
+
+export const ROLE_LABELS: Record<string, string> = {
+  admin: 'ผู้ดูแลระบบ',
+  manager: 'ผู้จัดการ',
+  staff: 'พนักงาน',
+}
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api'

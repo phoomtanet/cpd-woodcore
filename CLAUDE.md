@@ -28,7 +28,11 @@
 - **Docker** — containerize ทุก service
 - **PostgreSQL** — relational database หลัก
 - **Prisma ORM** — schema, migration, type-safe query
-- **Next.js 14** (App Router) — dashboard UI (Tailwind CSS + shadcn/ui)
+- **Next.js 15** (App Router) — dashboard UI
+- **Tailwind CSS** — utility-first styling
+- **Ant Design** — UI component library (Table, Form, Modal, etc.)
+- **Axios** — HTTP client (single instance, interceptors)
+- **Zustand** — lightweight global state management
 - **Node.js + Express** — REST API
 - **JWT + bcrypt** — Authentication / Authorization
 - **ExcelJS** — Export รายงานเป็น Excel (.xlsx) และ CSV
@@ -50,33 +54,76 @@ cpd-woodcore/
 │   │   │   ├── repositories/   # data access — Prisma queries only, ไม่มี business logic
 │   │   │   ├── middleware/     # authenticate, requireRole, validate, errorHandler
 │   │   │   ├── types/          # TypeScript declarations (express.d.ts)
-│   │   │   └── utils/          # pure helpers
+│   │   │   └── utils/          # pure helpers (errors.ts, etc.)
 │   │   ├── tests/
-│   │   │   ├── auth.test.ts
-│   │   │   ├── products.test.ts
-│   │   │   └── stock.test.ts
 │   │   └── package.json
 │   └── web/
-│       ├── app/
-│       │   ├── (auth)/login/
-│       │   └── (dashboard)/
-│       │       ├── products/       # รายการสินค้า
-│       │       ├── stock-in/       # รับสินค้าเข้า
-│       │       ├── stock-out/      # เบิกสินค้าออก
-│       │       ├── stock-adjust/   # ปรับสต๊อก
-│       │       ├── stock-transfer/ # โอนย้าย
-│       │       ├── stock-card/     # Stock Card รายสินค้า
-│       │       ├── alerts/         # Low Stock
-│       │       ├── reports/        # รายงาน + Export
-│       │       └── users/          # admin only
-│       └── package.json
+│       ├── app/                        # Next.js App Router — routing ONLY
+│       │   ├── (auth)/
+│       │   │   └── login/page.tsx      # renders <LoginPage /> from modules/auth
+│       │   ├── (dashboard)/
+│       │   │   ├── layout.tsx          # renders <DashboardLayout /> from shared/layouts
+│       │   │   ├── page.tsx            # renders <DashboardPage /> from modules/dashboard
+│       │   │   ├── products/page.tsx
+│       │   │   ├── stock-in/page.tsx
+│       │   │   ├── stock-out/page.tsx
+│       │   │   ├── stock-adjust/page.tsx
+│       │   │   ├── stock-transfer/page.tsx
+│       │   │   ├── stock-card/page.tsx
+│       │   │   ├── alerts/page.tsx
+│       │   │   ├── reports/page.tsx
+│       │   │   └── users/page.tsx
+│       │   ├── layout.tsx
+│       │   └── globals.css
+│       ├── modules/                    # Feature modules — domain logic per feature
+│       │   ├── auth/
+│       │   │   ├── components/         # LoginForm
+│       │   │   ├── hooks/              # useLogin
+│       │   │   ├── services/           # authApi.ts — POST /api/auth/login, GET /me
+│       │   │   └── types.ts
+│       │   ├── dashboard/
+│       │   │   └── components/         # DashboardPage, StatsCard
+│       │   ├── products/
+│       │   │   ├── components/         # ProductsPage, ProductTable, ProductForm, ProductModal
+│       │   │   ├── hooks/              # useProducts, useCreateProduct
+│       │   │   ├── services/           # productsApi.ts — CRUD /api/products
+│       │   │   └── types.ts
+│       │   ├── stock/
+│       │   │   ├── components/         # StockInForm, StockOutForm, AdjustForm, TransferForm, StockCard
+│       │   │   ├── hooks/              # useStockIn, useStockOut, useStockCard
+│       │   │   ├── services/           # stockApi.ts — /api/stock/*
+│       │   │   └── types.ts
+│       │   ├── reports/
+│       │   │   ├── components/         # ReportsPage, ReportTable, ExportButton
+│       │   │   ├── hooks/              # useReports
+│       │   │   ├── services/           # reportsApi.ts — /api/reports/*
+│       │   │   └── types.ts
+│       │   └── users/
+│       │       ├── components/         # UsersPage, UserTable, UserForm
+│       │       ├── hooks/              # useUsers
+│       │       ├── services/           # usersApi.ts — /api/users
+│       │       └── types.ts
+│       ├── shared/                     # Cross-feature reusable code
+│       │   ├── components/             # PageHeader, DataTable, StatusBadge, ConfirmModal
+│       │   ├── layouts/                # DashboardLayout (Sidebar + Header + Content)
+│       │   └── guards/                 # AuthGuard, RoleGuard
+│       ├── services/                   # Global HTTP layer
+│       │   └── api.ts                  # Axios instance — baseURL, token interceptor, error interceptor
+│       ├── store/                      # Global state (Zustand)
+│       │   └── authStore.ts            # user, token, setAuth, clearAuth
+│       ├── types/                      # Global TypeScript types
+│       │   └── index.ts                # ApiResponse<T>, PaginatedResponse<T>, Role
+│       ├── constants/                  # App-wide constants
+│       │   └── index.ts                # API_BASE_URL, ROLE_LABELS, ROUTES
+│       └── lib/                        # Pure utilities
+│           └── utils.ts                # cn(), formatDate(), formatNumber()
 ├── packages/
 │   └── db/
 │       ├── prisma/
-│       │   ├── schema.prisma       # models + enums ทั้งหมด
+│       │   ├── schema.prisma
 │       │   └── migrations/
 │       ├── src/
-│       │   └── index.ts            # export PrismaClient instance
+│       │   └── index.ts
 │       └── package.json
 ├── docker-compose.yml
 └── package.json
@@ -277,6 +324,62 @@ async create(data: Prisma.ProductCreateInput) {
 - Service ห้าม import `req`/`res` หรือ HTTP status codes
 - Repository ห้ามมี `if/else` business logic — query เท่านั้น
 
+### 8. Feature-Based Frontend Architecture (Web)
+Next.js App Router ใช้เป็น routing layer เท่านั้น — ไม่ใส่ logic ใน `app/`
+
+**กฎหลัก:**
+
+| Layer | ความรับผิดชอบ | ตำแหน่ง |
+|---|---|---|
+| **app/** | Next.js routing — render page component จาก module | `app/(dashboard)/products/page.tsx` |
+| **modules/[feature]/** | UI + hooks + services ของ feature นั้น | `modules/products/components/ProductsPage.tsx` |
+| **shared/** | component / layout ที่ใช้ข้าม feature | `shared/components/PageHeader.tsx` |
+| **services/api.ts** | Axios instance เดียว — token interceptor, error handling | `services/api.ts` |
+| **store/** | global state (Zustand) — auth เท่านั้น | `store/authStore.ts` |
+| **types/** | global TypeScript types | `types/index.ts` |
+| **constants/** | ค่าคงที่ app-wide | `constants/index.ts` |
+
+```ts
+// app/(dashboard)/products/page.tsx — routing ONLY
+import ProductsPage from '@/modules/products/components/ProductsPage'
+export default function Page() { return <ProductsPage /> }
+
+// modules/products/components/ProductsPage.tsx — feature UI
+'use client'
+export default function ProductsPage() {
+  const { data, isLoading } = useProducts()
+  return <ProductTable data={data} loading={isLoading} />
+}
+
+// modules/products/hooks/useProducts.ts — data fetching
+export function useProducts() {
+  const [data, setData] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  useEffect(() => { productsApi.getAll().then(setData).finally(() => setIsLoading(false)) }, [])
+  return { data, isLoading }
+}
+
+// modules/products/services/productsApi.ts — HTTP calls
+export const productsApi = {
+  getAll: () => api.get<ApiResponse<Product[]>>('/products').then(r => r.data.data),
+  create: (dto: CreateProductDto) => api.post('/products', dto),
+}
+
+// services/api.ts — single Axios instance
+const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL })
+api.interceptors.request.use(cfg => {
+  const token = useAuthStore.getState().token
+  if (token) cfg.headers.Authorization = `Bearer ${token}`
+  return cfg
+})
+```
+
+**กฎข้าม:**
+- `app/` ห้ามมี useState / useEffect / fetch — ต้องอยู่ใน module
+- `modules/[feature]/services/` ห้าม import จาก modules อื่น — ใช้ `services/api.ts` เท่านั้น
+- `shared/` ห้ามมี feature-specific logic — เป็น generic เท่านั้น
+- ห้ามสร้าง Axios instance มากกว่า 1 ตัว — ทุกที่ใช้ `services/api.ts`
+
 ---
 
 ## Task Management Rules (สำหรับ AI)
@@ -351,6 +454,38 @@ async create(data: Prisma.ProductCreateInput) {
   - 🧪 test: `npm run dev` → หน้าแรกแสดงผลได้ ไม่มี error ✅ | `npm run build` ✅
   - 📝 commit: `feat(web): setup nextjs tailwind shadcn`
   - [x] FIX: React version conflict (root node_modules/react=18.3.1 vs web=19.2.6) | fix: เพิ่ม react@^19.0.0 เป็น root dependency + overrides
+
+  - [x] FIX #2: stack เดิมใช้ shadcn/ui + โครงสร้าง flat ไม่รองรับ ERP scale | fix: ย้ายเป็น Ant Design + Feature-Based Architecture (Dev Standard #8)
+    - [x] FIX #2.1 ติดตั้ง antd + axios + zustand, ลบ shadcn/ui และ @base-ui/react ออก
+      - 🧪 test: `npm run build --workspace=apps/web` → ไม่มี error ✅ | `import { Button } from 'antd'` ใช้ได้ ✅
+      - 📝 commit: `chore(web): replace shadcn with antd axios zustand`
+
+      - [x] FIX #2.1a: `Result` component มี type error กับ React 19 types | fix: แทนด้วย Typography + Button
+        - 📝 commit: `fix(web): replace antd Result with Typography for react19 compat`
+      - [x] FIX #2.1b: Menu `onClick` destructure key มี implicit `any` | fix: เพิ่ม type annotation `{ key: string }`
+        - 📝 commit: `fix(web): type menu onclick key`
+
+    - [x] FIX #2.2 สร้าง directory structure — `modules/`, `shared/`, `services/`, `store/`, `types/`, `constants/`
+      - 🧪 test: โฟลเดอร์ครบตาม Dev Standard #8 ✅ | `npm run build` → pass ✅
+      - 📝 commit: `chore(web): scaffold feature-based directory structure`
+    - [x] FIX #2.3 สร้าง `services/api.ts` — Axios instance + token interceptor + error interceptor
+      - 🧪 test: request ที่มี token ส่ง `Authorization: Bearer ...` ในทุก header ✅ | 401 response → clearAuth + redirect `/login` ✅
+      - 📝 commit: `feat(web): axios instance with auth interceptors`
+    - [x] FIX #2.4 สร้าง `store/authStore.ts` — Zustand (user, token, setAuth, clearAuth) + persist ใน localStorage
+      - 🧪 test: login → setAuth → token อยู่ใน store ✅ | refresh หน้า → token ยังอยู่ (persist) ✅
+      - 📝 commit: `feat(web): zustand auth store with persistence`
+    - [x] FIX #2.5 สร้าง `types/index.ts` — ApiResponse\<T\>, PaginatedResponse\<T\>, Role, User
+      - 🧪 test: `npm run build` → TypeScript ไม่ error ✅
+      - 📝 commit: `feat(web): global typescript types`
+    - [x] FIX #2.6 สร้าง `constants/index.ts` — ROUTES, ROLE_LABELS, API_BASE_URL
+      - 🧪 test: `npm run build` → TypeScript ไม่ error ✅
+      - 📝 commit: `feat(web): app constants`
+    - [x] FIX #2.7 สร้าง `shared/layouts/DashboardLayout.tsx` — Ant Design Layout + Sidebar + Header
+      - 🧪 test: `npm run build` → pass ✅
+      - 📝 commit: `feat(web): dashboard layout with sidebar`
+    - [x] FIX #2.8 สร้าง `shared/guards/AuthGuard.tsx` + `RoleGuard.tsx`
+      - 🧪 test: `npm run build` → pass ✅
+      - 📝 commit: `feat(web): auth and role guards`
 
 - [x] 1.6 ตั้งค่า Jest + Supertest สำหรับ API test
   - 🧪 test: `npm test --workspace=apps/api` → PASS tests/health.test.ts (1 passed) ✅
