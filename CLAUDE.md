@@ -531,9 +531,12 @@ api.interceptors.request.use(cfg => {
     - 🧪 test: `npm test --workspace=apps/api` → 17 passed ✅
     - 📝 commit: `refactor(api): controller-service-repository pattern`
 
-- [ ] 2.3 API: CRUD user + เปลี่ยน role (admin only)
-  - 🧪 test: admin สร้าง user ได้, staff สร้างไม่ได้ → 403
+- [x] 2.3 API: CRUD user + เปลี่ยน role (admin only)
+  - 🧪 test: admin list/create/update/delete ✅ | manager/staff → 403 ✅ | validation → 400 ✅ | duplicate email → 409 ✅ | 30 tests passed ✅
   - 📝 commit: `feat(api): user management endpoints`
+
+  - [x] FIX #1: jest.mock hoisted ก่อน mockUsers/mockNewUser declarations | fix: inline mock data ใน jest.mock() factory โดยตรง
+    - 📝 commit: `fix(api): inline mock data in users test`
 
 - [ ] 2.4 Web: หน้า Login (form email/password, เก็บ JWT ใน httpOnly cookie)
   - 🧪 test: login สำเร็จ → redirect dashboard, ผิด → แสดง error
