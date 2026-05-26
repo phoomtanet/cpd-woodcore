@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import prisma from '@cpd/db'
 import errorHandler from './middleware/errorHandler'
+import authRouter from './routes/auth'
 import productsRouter from './routes/products'
 
 const app = express()
@@ -18,6 +19,7 @@ app.get('/api/health', async (_req, res) => {
   }
 })
 
+app.use('/api/auth', authRouter)
 app.use('/api/products', productsRouter)
 
 // Global error handler — must be registered last

@@ -5,5 +5,6 @@ module.exports = {
   testMatch: ['**/tests/**/*.test.ts'],
   moduleNameMapper: {
     '^@cpd/db$': '<rootDir>/../../packages/db/src/index.ts'
-  }
+  },
+  setupFiles: ['<rootDir>/tests/setup.ts']
 }

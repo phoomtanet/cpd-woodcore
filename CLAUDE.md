@@ -341,8 +341,8 @@ res.status(400).json({ error: 'message', details?: [...] })
 
 ### Phase 2 — ระบบ Authentication & User Management
 
-- [ ] 2.1 API: Login + ออก JWT (`POST /api/auth/login`) + seed admin user
-  - 🧪 test: POST email/password ถูก → ได้ JWT กลับ, ผิด → 401
+- [x] 2.1 API: Login + ออก JWT (`POST /api/auth/login`) + seed admin user
+  - 🧪 test: credentials ถูก → 200 + JWT ✅ | password ผิด → 401 ✅ | user ไม่มี → 401 ✅ | inactive → 401 ✅ | missing field → 400 ✅
   - 📝 commit: `feat(api): auth login with jwt`
 
 - [ ] 2.2 API: middleware ตรวจสอบ JWT + Role Guard
