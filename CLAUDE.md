@@ -227,9 +227,10 @@ model StockTransaction {
   - 🧪 test: `npm install` root → ไม่มี error ✅
   - 📝 commit: `chore: init monorepo workspace`
 
-- [ ] 1.2 ตั้งค่า Docker Compose (PostgreSQL + API + Web)
-  - 🧪 test: `docker compose up` → ทุก container ขึ้นปกติ
+- [x] 1.2 ตั้งค่า Docker Compose (PostgreSQL + API + Web)
+  - 🧪 test: `docker compose up` → ทุก container ขึ้นปกติ ✅
   - 📝 commit: `chore: add docker-compose`
+  - หมายเหตุ: ใช้ Supabase แทน local PostgreSQL (credentials อยู่ใน .env)
 
 - [ ] 1.3 ตั้งค่า Prisma ใน packages/db + เขียน schema.prisma + migrate
   - 🧪 test: `npx prisma migrate dev` → migration สำเร็จ, `prisma studio` เห็น tables
