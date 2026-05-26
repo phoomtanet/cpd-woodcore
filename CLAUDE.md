@@ -304,9 +304,10 @@ res.status(400).json({ error: 'message', details?: [...] })
   - [x] FIX #2: `libssl.so.1.1: No such file or directory` บน Alpine | fix: เพิ่ม `RUN apk add --no-cache openssl`
     - 📝 commit: `fix(api): add openssl to alpine dockerfile`
 
-- [ ] 1.5 ตั้งค่า Next.js + Tailwind CSS + shadcn/ui
-  - 🧪 test: `npm run dev` → หน้าแรกแสดงผลได้ ไม่มี error
+- [x] 1.5 ตั้งค่า Next.js + Tailwind CSS + shadcn/ui
+  - 🧪 test: `npm run dev` → หน้าแรกแสดงผลได้ ไม่มี error ✅ | `npm run build` ✅
   - 📝 commit: `feat(web): setup nextjs tailwind shadcn`
+  - [x] FIX: React version conflict (root node_modules/react=18.3.1 vs web=19.2.6) | fix: เพิ่ม react@^19.0.0 เป็น root dependency + overrides
 
 - [ ] 1.6 ตั้งค่า Jest + Supertest สำหรับ API test
   - 🧪 test: `npm test` → ผ่าน test เปล่า 1 ชุด
