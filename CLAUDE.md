@@ -217,6 +217,7 @@ model StockTransaction {
     - 📝 commit: `fix(1.1): ...`
 ```
 
+<!-- ทำ   เสร็จแล้วให้ test ถ้าผ่านให้ x  ไม่ผ่านให้แก้จนผ่าน แล้ว x -->
 ---
 
 ## Tasks
@@ -232,9 +233,14 @@ model StockTransaction {
   - 📝 commit: `chore: add docker-compose`
   - หมายเหตุ: ใช้ Supabase แทน local PostgreSQL (credentials อยู่ใน .env)
 
-- [ ] 1.3 ตั้งค่า Prisma ใน packages/db + เขียน schema.prisma + migrate
-  - 🧪 test: `npx prisma migrate dev` → migration สำเร็จ, `prisma studio` เห็น tables
+- [x] 1.3 ตั้งค่า Prisma ใน packages/db + เขียน schema.prisma + migrate
+  - 🧪 test: `npx prisma migrate dev` → migration สำเร็จ, tables ตรงกับ schema ✅
   - 📝 commit: `feat(db): add prisma schema and initial migration`
+
+  - [x] FIX #1: Prisma หา `.env` ไม่เจอเมื่อรันจาก packages/db | fix: สร้าง `packages/db/.env` แยก
+    - 📝 commit: `fix(db): add local .env for prisma cli`
+
+  - [x] FIX #2: IDE แสดง error ว่า `url`/`directUrl` ไม่รองรับ | fix: false positive จาก VS Code Prisma extension ที่ใช้ rules Prisma 6 — Prisma 5.22.0 รองรับปกติ
 
 - [ ] 1.4 ตั้งค่า Express API พื้นฐาน + เชื่อม PostgreSQL ผ่าน Prisma + Health endpoint
   - 🧪 test: `GET /api/health` → `{ status: "ok", db: "connected", uptime: 123 }`
