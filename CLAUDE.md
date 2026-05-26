@@ -319,9 +319,10 @@ res.status(400).json({ error: 'message', details?: [...] })
   - 📝 commit: `chore: add dockerignore`
   - หมายเหตุ: ใช้ `.dockerignore` ไฟล์เดียวที่ root เพราะทั้งสอง Dockerfile ใช้ `context: .`
 
-- [ ] 1.8 ตั้งค่า ESLint + Prettier + lint-staged + Husky
-  - 🧪 test: `npm run lint` → ไม่มี error, commit ไฟล์ที่ format ผิด → hook บล็อก
+- [x] 1.8 ตั้งค่า ESLint + Prettier + lint-staged + Husky
+  - 🧪 test: `npm run lint` → ไม่มี error ✅ | commit ไฟล์ที่ใช้ `any` → hook บล็อกพร้อม error ✅
   - 📝 commit: `chore: add eslint prettier lint-staged`
+  - [x] FIX: eslint-config-next@16 ดึง ESLint 10 มาแทน v8 | fix: ลบ eslint-config-next ออก ใช้ @typescript-eslint ตรงๆ แทนทั้งสอง workspace
 
 - [ ] 1.9 เพิ่ม Env Validation + Global Error Handler ใน API
   - 🧪 test: ลบ `JWT_SECRET` จาก .env → server ไม่ start พร้อม error ชัดเจน, POST body ผิด format → 400 JSON ไม่ crash

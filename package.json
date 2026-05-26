@@ -10,7 +10,26 @@
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "apps/api/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "apps/web/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "packages/**/*.ts": [
+      "prettier --write"
+    ],
+    "*.{json,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "react": "^19.0.0",
@@ -22,5 +41,14 @@
   "overrides": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.8.3"
   }
 }

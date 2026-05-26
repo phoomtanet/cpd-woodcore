@@ -1,0 +1,15 @@
+/** @type {import('@typescript-eslint/utils').TSESLint.Linter.Config} */
+module.exports = {
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'prettier',
+  ],
+  env: { node: true, es2020: true },
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+  },
+}
