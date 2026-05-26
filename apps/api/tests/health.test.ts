@@ -17,3 +17,14 @@ describe('GET /api/health', () => {
     expect(typeof res.body.uptime).toBe('number')
   })
 })
+
+describe('Global Error Handler', () => {
+  it('returns 400 for malformed JSON body', async () => {
+    const res = await request(app)
+      .post('/api/health')
+      .set('Content-Type', 'application/json')
+      .send('{invalid json}')
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBe('Invalid JSON body')
+  })
+})

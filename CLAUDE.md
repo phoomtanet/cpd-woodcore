@@ -324,8 +324,8 @@ res.status(400).json({ error: 'message', details?: [...] })
   - 📝 commit: `chore: add eslint prettier lint-staged`
   - [x] FIX: eslint-config-next@16 ดึง ESLint 10 มาแทน v8 | fix: ลบ eslint-config-next ออก ใช้ @typescript-eslint ตรงๆ แทนทั้งสอง workspace
 
-- [ ] 1.9 เพิ่ม Env Validation + Global Error Handler ใน API
-  - 🧪 test: ลบ `JWT_SECRET` จาก .env → server ไม่ start พร้อม error ชัดเจน, POST body ผิด format → 400 JSON ไม่ crash
+- [x] 1.9 เพิ่ม Env Validation + Global Error Handler ใน API
+  - 🧪 test: ไม่มี JWT_SECRET → `Error: Missing required environment variable: JWT_SECRET` ✅ | POST malformed JSON → 400 `{error:"Invalid JSON body"}` ✅
   - 📝 commit: `feat(api): env validation and global error handler`
 
 - [ ] 1.10 ติดตั้ง Zod ใน API + สร้าง validation schema ตัวอย่าง
