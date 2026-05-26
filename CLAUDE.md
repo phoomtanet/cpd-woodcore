@@ -555,12 +555,15 @@ api.interceptors.request.use(cfg => {
   - [x] FIX #1: AuthGuard redirect ผิดสำหรับ user ที่ login แล้ว เพราะ Zustand rehydrate จาก localStorage หลัง render ครั้งแรก | fix: เพิ่ม `mounted` state — รอ client mount ก่อน (`useEffect(() => setMounted(true), [])`) จึงค่อย check token
     - 📝 commit: `fix(web): wait for zustand hydration before auth redirect`
 
-- [ ] 2.6 Web: หน้าจัดการ User (admin only)
-  - 🧪 test: admin เห็นหน้า Users, staff เข้าไม่ได้
+- [x] 2.6 Web: หน้าจัดการ User (admin only)
+  - 🧪 test: `npm run build` → `/users` route ✅ | admin เห็นตาราง user ✅ | role ≠ admin → 403 page ✅ | เพิ่ม/แก้ไข/ลบผ่าน modal ✅
   - 📝 commit: `feat(web): user management page`
 
-- [ ] 2.7 Auto test: ครอบคลุม auth flow ทั้งหมด
-  - 🧪 test: `npm test` → login, invalid token, role guard ผ่านทั้งหมด
+  - [x] FIX #1: `onCreate` prop type `Promise<void>` ไม่รับ `Promise<User>` ที่ hook คืนมา | fix: เปลี่ยน prop type เป็น `Promise<unknown>`
+    - 📝 commit: `fix(web): fix oncreate prop type in user form modal`
+
+- [x] 2.7 Auto test: ครอบคลุม auth flow ทั้งหมด
+  - 🧪 test: `npm test` → 30 tests passed (auth 5, authMiddleware 7, users 13, products 4, health 1) ✅
   - 📝 commit: `test(api): auth and role guard tests`
 
 ---
