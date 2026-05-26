@@ -392,6 +392,10 @@ async create(data: Prisma.ProductCreateInput) {
   - 🧪 test: ไม่มี token → 401 ✅ | token ผิด → 401 ✅ | staff POST products → 403 ✅ | manager/admin → 201 ✅ | GET /me valid → 200 ✅
   - 📝 commit: `feat(api): auth middleware and role guard`
 
+  - [x] FIX #1: routes/auth.ts + routes/products.ts มี business logic ตรงใน handler (Prisma, bcrypt, jwt) ละเมิด Dev Standard #7 | fix: แยก 3 ชั้น — สร้าง `UserRepository`, `ProductRepository`, `AuthService`, `ProductService`, `AuthController`, `ProductController` + สร้าง `utils/errors.ts` (HttpError subclasses) + อัปเดต errorHandler ให้รับ HttpError
+    - 🧪 test: `npm test --workspace=apps/api` → 17 passed ✅
+    - 📝 commit: `refactor(api): controller-service-repository pattern`
+
 - [ ] 2.3 API: CRUD user + เปลี่ยน role (admin only)
   - 🧪 test: admin สร้าง user ได้, staff สร้างไม่ได้ → 403
   - 📝 commit: `feat(api): user management endpoints`
