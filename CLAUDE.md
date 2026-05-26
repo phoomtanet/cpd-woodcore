@@ -333,8 +333,8 @@ res.status(400).json({ error: 'message', details?: [...] })
   - 📝 commit: `feat(api): add zod request validation`
   - [x] FIX: Zod 3.25 เปลี่ยน param API จาก `required_error` เป็น `error` | fix: ใช้ `{ error: 'Required' }` แทน
 
-- [ ] 1.11 สร้าง Seed script (admin user + สินค้าตัวอย่าง)
-  - 🧪 test: `npx prisma db seed` → มี admin@cpd.com + สินค้า 5 รายการใน DB
+- [x] 1.11 สร้าง Seed script (admin user + สินค้าตัวอย่าง)
+  - 🧪 test: `npx prisma db seed` → admin@cpd.com + manager@cpd.com + สินค้า 5 รายการ (raw/wip/finished) ✅ | รันซ้ำไม่ error (upsert) ✅
   - 📝 commit: `chore(db): add seed script`
 
 ---
