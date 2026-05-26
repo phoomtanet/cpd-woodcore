@@ -328,9 +328,10 @@ res.status(400).json({ error: 'message', details?: [...] })
   - 🧪 test: ไม่มี JWT_SECRET → `Error: Missing required environment variable: JWT_SECRET` ✅ | POST malformed JSON → 400 `{error:"Invalid JSON body"}` ✅
   - 📝 commit: `feat(api): env validation and global error handler`
 
-- [ ] 1.10 ติดตั้ง Zod ใน API + สร้าง validation schema ตัวอย่าง
-  - 🧪 test: POST `/api/products` โดยไม่ส่ง `name` → 400 `{ error: [{field: "name", message: "Required"}] }`
+- [x] 1.10 ติดตั้ง Zod ใน API + สร้าง validation schema ตัวอย่าง
+  - 🧪 test: POST `/api/products` ไม่ส่ง `name` → 400 `{ error: [{field: "name", message: "Required"}] }` ✅ | 5 tests passed ✅
   - 📝 commit: `feat(api): add zod request validation`
+  - [x] FIX: Zod 3.25 เปลี่ยน param API จาก `required_error` เป็น `error` | fix: ใช้ `{ error: 'Required' }` แทน
 
 - [ ] 1.11 สร้าง Seed script (admin user + สินค้าตัวอย่าง)
   - 🧪 test: `npx prisma db seed` → มี admin@cpd.com + สินค้า 5 รายการใน DB
