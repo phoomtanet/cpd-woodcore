@@ -548,9 +548,12 @@ api.interceptors.request.use(cfg => {
   - [x] FIX #2: `app/page.tsx` ชนกับ `app/(dashboard)/page.tsx` ที่ path `/` | fix: ลบ `app/page.tsx` ออก ให้ `(dashboard)/page.tsx` เป็น root — AuthGuard จัดการ redirect `/login`
     - 📝 commit: `fix(web): remove conflicting root page`
 
-- [ ] 2.5 Web: ป้องกัน route (redirect ถ้าไม่ได้ login)
-  - 🧪 test: เปิด `/dashboard` โดยไม่ login → redirect `/login`
+- [x] 2.5 Web: ป้องกัน route (redirect ถ้าไม่ได้ login)
+  - 🧪 test: เปิด `/` โดยไม่มี token → redirect `/login` ✅ | user ที่ login แล้ว refresh → ยังอยู่หน้าเดิม ✅ | `npm run build` → pass ✅
   - 📝 commit: `feat(web): protected routes middleware`
+
+  - [x] FIX #1: AuthGuard redirect ผิดสำหรับ user ที่ login แล้ว เพราะ Zustand rehydrate จาก localStorage หลัง render ครั้งแรก | fix: เพิ่ม `mounted` state — รอ client mount ก่อน (`useEffect(() => setMounted(true), [])`) จึงค่อย check token
+    - 📝 commit: `fix(web): wait for zustand hydration before auth redirect`
 
 - [ ] 2.6 Web: หน้าจัดการ User (admin only)
   - 🧪 test: admin เห็นหน้า Users, staff เข้าไม่ได้

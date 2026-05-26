@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Spin } from 'antd'
 import { useAuthStore } from '@/store/authStore'
@@ -13,12 +13,19 @@ interface AuthGuardProps {
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
   const token = useAuthStore((s) => s.token)
+  // Wait for client mount so Zustand can rehydrate from localStorage
+  // before we decide whether to redirect — prevents false redirects on refresh
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (!token) router.replace(ROUTES.LOGIN)
-  }, [token, router])
+    setMounted(true)
+  }, [])
 
-  if (!token) {
+  useEffect(() => {
+    if (mounted && !token) router.replace(ROUTES.LOGIN)
+  }, [mounted, token, router])
+
+  if (!mounted || !token) {
     return (
       <div
         style={{
