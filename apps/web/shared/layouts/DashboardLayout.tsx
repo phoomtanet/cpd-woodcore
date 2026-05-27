@@ -14,6 +14,7 @@ import {
   BellOutlined,
   BarChartOutlined,
   TeamOutlined,
+  SettingOutlined,
   UserOutlined,
   LogoutOutlined,
 } from '@ant-design/icons'
@@ -40,6 +41,7 @@ const menuItems = [
   { key: ROUTES.ALERTS, icon: <BellOutlined />, label: 'Low Stock Alert' },
   { key: ROUTES.REPORTS, icon: <BarChartOutlined />, label: 'รายงาน' },
   { key: ROUTES.USERS, icon: <TeamOutlined />, label: 'จัดการผู้ใช้' },
+  { key: ROUTES.SETTINGS_ROLES, icon: <SettingOutlined />, label: 'ตั้งค่าสิทธิ์' },
 ]
 
 interface DashboardLayoutProps {

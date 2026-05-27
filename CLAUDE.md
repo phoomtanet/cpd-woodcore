@@ -646,10 +646,10 @@ model RolePermission {
   - 🧪 test: 66 tests passed — GET all (admin-only), GET/:role (all auth), PUT (admin-only + validation) ✅
   - 📝 commit: `feat(api): role permission management`
 
-- [ ] 2.9 Web: หน้าตั้งค่า Role Permission (admin only)
+- [x] 2.9 Web: หน้าตั้งค่า Role Permission (admin only)
   - route `/settings/roles` — แสดงตาราง role × menu พร้อม checkbox canView/canCreate/canUpdate/canDelete
   - บันทึกทีละแถว (PUT per menuKey) พร้อม loading + feedback
-  - 🧪 test: build ผ่าน, admin เห็นหน้า settings, non-admin → 403
+  - 🧪 test: `npm run build` → `/settings/roles` route ✅ | RoleGuard roles=['admin'] → non-admin 403 ✅
   - 📝 commit: `feat(web): role permission settings page`
 
 - [ ] 2.10 Web: ใช้ Role Permission จาก server ใน UI

@@ -10,6 +10,7 @@ export const ROUTES = {
   ALERTS: '/alerts',
   REPORTS: '/reports',
   USERS: '/users',
+  SETTINGS_ROLES: '/settings/roles',
 } as const
 
 export const ROLE_LABELS: Record<string, string> = {

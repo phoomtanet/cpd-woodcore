@@ -25,3 +25,14 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   error: string | { field: string; message: string }[]
 }
+
+export interface RolePermission {
+  id: number
+  role: Role
+  menuKey: string
+  canView: boolean
+  canCreate: boolean
+  canUpdate: boolean
+  canDelete: boolean
+  updatedAt: string
+}
