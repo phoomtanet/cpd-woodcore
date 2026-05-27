@@ -9,7 +9,8 @@ const staffToken = jwt.sign({ userId: 3, role: 'staff' }, SECRET, { expiresIn: '
 
 const MOCK_PERM = {
   id: 1,
-  role: 'manager',
+  roleId: 2,
+  role: { name: 'manager' },
   menuKey: 'products',
   canView: true,
   canCreate: true,
@@ -22,9 +23,16 @@ jest.mock('@cpd/db', () => ({
   __esModule: true,
   default: {
     $queryRaw: jest.fn(),
+    role: {
+      findUniqueOrThrow: jest.fn().mockResolvedValue({
+        id: 2,
+        name: 'manager',
+        label: 'ผู้จัดการ',
+        createdAt: new Date(),
+      }),
+    },
     rolePermission: {
       findMany: jest.fn(),
-      findUnique: jest.fn(),
       upsert: jest.fn(),
     },
   },
@@ -155,7 +163,7 @@ describe('PUT /api/role-permissions/:role/:menuKey', () => {
     expect(res.status).toBe(200)
     expect(mockUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { role_menuKey: { role: 'manager', menuKey: 'products' } },
+        where: { roleId_menuKey: { roleId: 2, menuKey: 'products' } },
         update: validBody,
       })
     )

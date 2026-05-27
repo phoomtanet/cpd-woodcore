@@ -659,14 +659,14 @@ model RolePermission {
   - 🧪 test: build ผ่าน, เปลี่ยน permission → menu/ปุ่มหาย-ปรากฏตาม config
   - 📝 commit: `feat(web): dynamic menu and action visibility from role permissions`
 
-- [ ] 2.11 DB + API: สร้าง Role table แทน enum — เก็บ `name` + `label` ใน DB
+- [x] 2.11 DB + API: สร้าง Role table แทน enum — เก็บ `name` + `label` ใน DB
   - ลบ `enum Role` ออกจาก schema + สร้าง `model Role { id, name, label, createdAt }`
   - ปรับ `User.role` → `User.roleId Int` (FK → Role)
   - ปรับ `RolePermission.role` → `RolePermission.roleId Int` (FK → Role)
   - migrate + seed roles เริ่มต้น: `{ name: 'admin', label: 'ผู้ดูแลระบบ' }` ฯลฯ
   - เพิ่ม `GET /api/roles` — ดึง role ทั้งหมด (auth), `POST/PUT/DELETE /api/roles` (admin only, สำหรับสร้าง/แก้ role ใหม่)
-  - ปรับ middleware `requireRole` ให้ตรวจจาก `role.name` แทน enum string
-  - 🧪 test: GET roles → list ถูกต้อง, CRUD roles → admin-only, FK constraint ถูกต้อง
+  - ปรับ repositories ให้ flatten role name ใน API response (role string ยังเหมือนเดิมสำหรับ JWT และ frontend)
+  - 🧪 test: 79 tests passed — GET roles (all auth), CRUD roles (admin-only), rolePermission compound key roleId_menuKey ✅
   - 📝 commit: `feat(api): role table replaces enum`
 
 - [ ] 2.12 Web: ดึง Role list + label จาก API แทน hardcode

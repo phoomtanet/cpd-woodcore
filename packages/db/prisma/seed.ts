@@ -4,6 +4,24 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
+  // Seed roles first
+  const roleData = [
+    { name: 'admin', label: 'ผู้ดูแลระบบ' },
+    { name: 'manager', label: 'ผู้จัดการ' },
+    { name: 'staff', label: 'พนักงาน' },
+  ]
+
+  const roleMap: Record<string, number> = {}
+  for (const r of roleData) {
+    const role = await prisma.role.upsert({
+      where: { name: r.name },
+      update: { label: r.label },
+      create: r,
+    })
+    roleMap[role.name] = role.id
+    console.log(`✓ Role: ${role.name} (${role.label})`)
+  }
+
   // Admin user
   const adminHash = await bcrypt.hash('Admin@cpd2024', 10)
   const admin = await prisma.user.upsert({
@@ -13,10 +31,10 @@ async function main() {
       name: 'ผู้ดูแลระบบ',
       email: 'admin@cpd.com',
       passwordHash: adminHash,
-      role: 'admin',
+      roleId: roleMap['admin'],
     },
   })
-  console.log(`✓ User: ${admin.email} (${admin.role})`)
+  console.log(`✓ User: ${admin.email}`)
 
   // Manager user
   const managerHash = await bcrypt.hash('Manager@cpd2024', 10)
@@ -27,12 +45,12 @@ async function main() {
       name: 'ผู้จัดการคลัง',
       email: 'manager@cpd.com',
       passwordHash: managerHash,
-      role: 'manager',
+      roleId: roleMap['manager'],
     },
   })
-  console.log(`✓ User: ${manager.email} (${manager.role})`)
+  console.log(`✓ User: ${manager.email}`)
 
-  // Sample products for a wood pallet factory
+  // Sample products
   const products = [
     {
       name: 'ไม้ซุงยูคาลิปตัส',
@@ -101,12 +119,7 @@ async function main() {
   }
 
   // Default role permissions
-  type PermDef = {
-    canView: boolean
-    canCreate: boolean
-    canUpdate: boolean
-    canDelete: boolean
-  }
+  type PermDef = { canView: boolean; canCreate: boolean; canUpdate: boolean; canDelete: boolean }
   type RoleKey = 'admin' | 'manager' | 'staff'
 
   const MENUS = [
@@ -155,16 +168,17 @@ async function main() {
     },
   }
 
-  for (const role of ['admin', 'manager', 'staff'] as RoleKey[]) {
+  for (const roleName of ['admin', 'manager', 'staff'] as RoleKey[]) {
+    const roleId = roleMap[roleName]
     for (const menuKey of MENUS) {
-      const perm = DEFAULTS[role][menuKey]
+      const perm = DEFAULTS[roleName][menuKey]
       await prisma.rolePermission.upsert({
-        where: { role_menuKey: { role, menuKey } },
+        where: { roleId_menuKey: { roleId, menuKey } },
         update: {},
-        create: { role, menuKey, ...perm },
+        create: { roleId, menuKey, ...perm },
       })
     }
-    console.log(`✓ Permissions seeded for role: ${role}`)
+    console.log(`✓ Permissions seeded for role: ${roleName}`)
   }
 
   console.log('\nSeed completed.')

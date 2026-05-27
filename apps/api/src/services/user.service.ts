@@ -6,12 +6,12 @@ export interface CreateUserDto {
   name: string
   email: string
   password: string
-  role: 'admin' | 'manager' | 'staff'
+  role: string
 }
 
 export interface UpdateUserDto {
   name?: string
-  role?: 'admin' | 'manager' | 'staff'
+  role?: string
   isActive?: boolean
 }
 

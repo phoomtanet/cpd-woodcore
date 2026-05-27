@@ -6,6 +6,7 @@ import authRouter from './routes/auth'
 import productsRouter from './routes/products'
 import usersRouter from './routes/users'
 import rolePermissionsRouter from './routes/role-permissions'
+import rolesRouter from './routes/roles'
 
 const app = express()
 
@@ -25,6 +26,7 @@ app.use('/api/auth', authRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/role-permissions', rolePermissionsRouter)
+app.use('/api/roles', rolesRouter)
 
 // Global error handler — must be registered last
 app.use(errorHandler)

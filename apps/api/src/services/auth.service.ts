@@ -11,11 +11,12 @@ export const AuthService = {
     const valid = await bcrypt.compare(password, user.passwordHash)
     if (!valid) throw new UnauthorizedError('Invalid credentials')
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET ?? '', {
+    const roleName = user.role.name
+    const token = jwt.sign({ userId: user.id, role: roleName }, process.env.JWT_SECRET ?? '', {
       expiresIn: '7d',
     })
 
-    return { token, user: { id: user.id, name: user.name, email: user.email, role: user.role } }
+    return { token, user: { id: user.id, name: user.name, email: user.email, role: roleName } }
   },
 
   async getMe(userId: number) {

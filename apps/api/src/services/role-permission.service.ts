@@ -1,5 +1,4 @@
 import { RolePermissionRepository } from '../repositories/role-permission.repository'
-import type { Role } from '@prisma/client'
 
 export interface UpdatePermissionDto {
   canView: boolean
@@ -13,11 +12,11 @@ export const RolePermissionService = {
     return RolePermissionRepository.findAll()
   },
 
-  getByRole(role: Role) {
-    return RolePermissionRepository.findByRole(role)
+  getByRole(roleName: string) {
+    return RolePermissionRepository.findByRole(roleName)
   },
 
-  updatePermission(role: Role, menuKey: string, dto: UpdatePermissionDto) {
-    return RolePermissionRepository.upsert(role, menuKey, dto)
+  updatePermission(roleName: string, menuKey: string, dto: UpdatePermissionDto) {
+    return RolePermissionRepository.upsert(roleName, menuKey, dto)
   },
 }

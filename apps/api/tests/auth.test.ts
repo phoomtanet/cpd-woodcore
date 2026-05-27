@@ -9,9 +9,11 @@ const MOCK_USER = {
   name: 'ผู้ดูแลระบบ',
   email: 'admin@cpd.com',
   passwordHash: HASH,
-  role: 'admin',
+  roleId: 1,
+  role: { name: 'admin' },
   isActive: true,
   createdAt: new Date(),
+  deletedAt: null,
 }
 
 jest.mock('@cpd/db', () => ({
@@ -24,13 +26,13 @@ jest.mock('@cpd/db', () => ({
 }))
 
 import prisma from '@cpd/db'
-const mockFindUnique = prisma.user.findFirst as jest.Mock
+const mockFindFirst = prisma.user.findFirst as jest.Mock
 
 describe('POST /api/auth/login', () => {
   beforeEach(() => jest.clearAllMocks())
 
   it('returns token when credentials are correct', async () => {
-    mockFindUnique.mockResolvedValue(MOCK_USER)
+    mockFindFirst.mockResolvedValue(MOCK_USER)
 
     const res = await request(app)
       .post('/api/auth/login')
@@ -51,7 +53,7 @@ describe('POST /api/auth/login', () => {
   })
 
   it('returns 401 when password is wrong', async () => {
-    mockFindUnique.mockResolvedValue(MOCK_USER)
+    mockFindFirst.mockResolvedValue(MOCK_USER)
 
     const res = await request(app)
       .post('/api/auth/login')
@@ -62,7 +64,7 @@ describe('POST /api/auth/login', () => {
   })
 
   it('returns 401 when user does not exist', async () => {
-    mockFindUnique.mockResolvedValue(null)
+    mockFindFirst.mockResolvedValue(null)
 
     const res = await request(app)
       .post('/api/auth/login')
@@ -73,7 +75,7 @@ describe('POST /api/auth/login', () => {
   })
 
   it('returns 401 when user is inactive', async () => {
-    mockFindUnique.mockResolvedValue({ ...MOCK_USER, isActive: false })
+    mockFindFirst.mockResolvedValue({ ...MOCK_USER, isActive: false })
 
     const res = await request(app)
       .post('/api/auth/login')

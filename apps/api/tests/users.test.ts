@@ -16,7 +16,8 @@ jest.mock('@cpd/db', () => ({
         id: 1,
         name: 'Admin',
         email: 'admin@cpd.com',
-        role: 'admin',
+        roleId: 1,
+        role: { name: 'admin' },
         isActive: true,
         createdAt: new Date(),
         deletedAt: null,
@@ -26,7 +27,8 @@ jest.mock('@cpd/db', () => ({
           id: 1,
           name: 'Admin',
           email: 'admin@cpd.com',
-          role: 'admin',
+          roleId: 1,
+          role: { name: 'admin' },
           isActive: true,
           createdAt: new Date(),
           deletedAt: null,
@@ -35,7 +37,8 @@ jest.mock('@cpd/db', () => ({
           id: 2,
           name: 'Manager',
           email: 'manager@cpd.com',
-          role: 'manager',
+          roleId: 2,
+          role: { name: 'manager' },
           isActive: true,
           createdAt: new Date(),
           deletedAt: null,
@@ -45,7 +48,8 @@ jest.mock('@cpd/db', () => ({
         id: 3,
         name: 'Staff One',
         email: 'staff1@cpd.com',
-        role: 'staff',
+        roleId: 3,
+        role: { name: 'staff' },
         isActive: true,
         createdAt: new Date(),
         deletedAt: null,
@@ -54,7 +58,8 @@ jest.mock('@cpd/db', () => ({
         id: 2,
         name: 'Manager',
         email: 'manager@cpd.com',
-        role: 'manager',
+        roleId: 2,
+        role: { name: 'manager' },
         isActive: true,
         createdAt: new Date(),
         deletedAt: null,
@@ -193,7 +198,6 @@ describe('DELETE /api/users/:id — soft delete', () => {
 
 describe('POST /api/auth/login — soft-deleted user', () => {
   it('returns 401 when user is soft-deleted', async () => {
-    // findFirst with deletedAt: null returns null for soft-deleted user
     mockFindFirst.mockResolvedValueOnce(null)
     const res = await request(app)
       .post('/api/auth/login')

@@ -8,12 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Role {
-  admin
-  manager
-  staff
-}
-
 enum ProductType {
   raw
   wip
@@ -27,12 +21,22 @@ enum TxType {
   transfer
 }
 
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  label       String
+  createdAt   DateTime         @default(now())
+  users       User[]
+  permissions RolePermission[]
+}
+
 model User {
   id           Int                @id @default(autoincrement())
   name         String
   email        String             @unique
   passwordHash String
-  role         Role               @default(staff)
+  roleId       Int
+  role         Role               @relation(fields: [roleId], references: [id])
   isActive     Boolean            @default(true)
   createdAt    DateTime           @default(now())
   deletedAt    DateTime?
@@ -60,7 +64,8 @@ model Product {
 
 model RolePermission {
   id        Int      @id @default(autoincrement())
-  role      Role
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id])
   menuKey   String
   canView   Boolean  @default(true)
   canCreate Boolean  @default(false)
@@ -68,7 +73,7 @@ model RolePermission {
   canDelete Boolean  @default(false)
   updatedAt DateTime @updatedAt
 
-  @@unique([role, menuKey])
+  @@unique([roleId, menuKey])
 }
 
 model StockTransaction {

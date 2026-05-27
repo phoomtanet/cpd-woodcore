@@ -1,31 +1,53 @@
 import prisma from '@cpd/db'
-import type { Role } from '@prisma/client'
+
+type RawPerm = {
+  id: number
+  roleId: number
+  role: { name: string }
+  menuKey: string
+  canView: boolean
+  canCreate: boolean
+  canUpdate: boolean
+  canDelete: boolean
+  updatedAt: Date
+}
+
+function flattenRole(p: RawPerm) {
+  return { ...p, role: p.role.name }
+}
+
+const permInclude = { role: { select: { name: true } } } as const
 
 export const RolePermissionRepository = {
-  findAll() {
-    return prisma.rolePermission.findMany({ orderBy: [{ role: 'asc' }, { menuKey: 'asc' }] })
+  async findAll() {
+    const perms = await prisma.rolePermission.findMany({
+      include: permInclude,
+      orderBy: [{ roleId: 'asc' }, { menuKey: 'asc' }],
+    })
+    return perms.map(flattenRole)
   },
 
-  findByRole(role: Role) {
-    return prisma.rolePermission.findMany({
-      where: { role },
+  async findByRole(roleName: string) {
+    const perms = await prisma.rolePermission.findMany({
+      where: { role: { name: roleName } },
+      include: permInclude,
       orderBy: { menuKey: 'asc' },
     })
+    return perms.map(flattenRole)
   },
 
-  findByRoleAndMenu(role: Role, menuKey: string) {
-    return prisma.rolePermission.findUnique({ where: { role_menuKey: { role, menuKey } } })
-  },
-
-  upsert(
-    role: Role,
+  async upsert(
+    roleName: string,
     menuKey: string,
     data: { canView: boolean; canCreate: boolean; canUpdate: boolean; canDelete: boolean }
   ) {
-    return prisma.rolePermission.upsert({
-      where: { role_menuKey: { role, menuKey } },
+    const roleRecord = await prisma.role.findUniqueOrThrow({ where: { name: roleName } })
+    const p = await prisma.rolePermission.upsert({
+      where: { roleId_menuKey: { roleId: roleRecord.id, menuKey } },
       update: data,
-      create: { role, menuKey, ...data },
+      create: { roleId: roleRecord.id, menuKey, ...data },
+      include: permInclude,
     })
+    return flattenRole(p)
   },
 }
