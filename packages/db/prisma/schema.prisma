@@ -58,6 +58,19 @@ model Product {
   transactions StockTransaction[]
 }
 
+model RolePermission {
+  id        Int      @id @default(autoincrement())
+  role      Role
+  menuKey   String
+  canView   Boolean  @default(true)
+  canCreate Boolean  @default(false)
+  canUpdate Boolean  @default(false)
+  canDelete Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([role, menuKey])
+}
+
 model StockTransaction {
   id           Int      @id @default(autoincrement())
   product      Product  @relation(fields: [productId], references: [id])

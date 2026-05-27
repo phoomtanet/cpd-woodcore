@@ -194,6 +194,19 @@ model Product {
   transactions StockTransaction[]
 }
 
+model RolePermission {
+  id        Int      @id @default(autoincrement())
+  role      Role
+  menuKey   String
+  canView   Boolean  @default(true)
+  canCreate Boolean  @default(false)
+  canUpdate Boolean  @default(false)
+  canDelete Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([role, menuKey])
+}
+
 model StockTransaction {
   id           Int      @id @default(autoincrement())
   product      Product  @relation(fields: [productId], references: [id])
@@ -399,6 +412,41 @@ model Product {
 - API: `DELETE /:id` ยังคง return 200 เหมือนเดิม — client ไม่รู้ว่าเป็น soft delete
 - ห้าม hard delete record ที่มี foreign key references (StockTransaction) — ใช้ soft delete เท่านั้น
 
+### 10. Role Permission (Dynamic RBAC)
+สิทธิ์การเข้าถึง menu และ CRUD action ต้องอ่านจาก `RolePermission` ใน DB — ไม่ hardcode ใน code
+
+**Data Model:**
+```prisma
+model RolePermission {
+  id        Int      @id @default(autoincrement())
+  role      Role
+  menuKey   String   // "products" | "stock-in" | "stock-out" | "reports" | "users" | ...
+  canView   Boolean  @default(true)
+  canCreate Boolean  @default(false)
+  canUpdate Boolean  @default(false)
+  canDelete Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([role, menuKey])
+}
+```
+
+**กฎ API:**
+- `GET /api/role-permissions/:role` — public ถ้า authenticated (ทุก role ดู config ของตัวเองได้)
+- `GET /api/role-permissions` + `PUT /api/role-permissions/:role/:menuKey` — admin only
+- Seed default permissions ตาม role เดิมเสมอเมื่อ migrate — ป้องกัน permission ว่างหลัง deploy ใหม่
+
+**กฎ Frontend:**
+- หลัง login → `GET /api/role-permissions/:role` → เก็บใน `permissionStore` (Zustand)
+- Sidebar: render เฉพาะ menu ที่ `canView: true`
+- ปุ่ม "เพิ่ม" / "แก้ไข" / "ลบ" แสดงตาม `canCreate` / `canUpdate` / `canDelete`
+- ห้าม hardcode role name ใน component เพื่อตัดสิน visibility — ให้ใช้ permission flag เท่านั้น
+- `permissionStore` ต้อง clear ตอน logout (เหมือน `authStore`)
+
+**กฎข้าม:**
+- ห้าม duplicate permission check — API enforce ด้วย `requireRole` + Frontend hide ด้วย permission flag (ทั้งสองต้องมี — frontend เป็น UX, backend เป็น security)
+- ห้ามใช้ `user.role === 'admin'` ใน component ตรงๆ เพื่อ show/hide — ให้ผ่าน `permissionStore` เสมอ
+
 ---
 
 ## Task Management Rules (สำหรับ AI)
@@ -588,6 +636,28 @@ model Product {
 - [x] 2.7 Auto test: ครอบคลุม auth flow ทั้งหมด
   - 🧪 test: `npm test` → 30 tests passed (auth 5, authMiddleware 7, users 13, products 4, health 1) ✅
   - 📝 commit: `test(api): auth and role guard tests`
+
+- [x] 2.8 DB + API: ระบบ Role Permission — กำหนดสิทธิ์ per role per menu
+  - เพิ่ม model `RolePermission { role, menuKey, canView, canCreate, canUpdate, canDelete }` ใน Prisma schema
+  - เพิ่ม seed default permissions ตาม role เดิม (admin=all, manager=ดู+เพิ่ม+แก้, staff=ดู+เพิ่ม stock)
+  - `GET /api/role-permissions` — ดึง config ทั้งหมด (admin only)
+  - `GET /api/role-permissions/:role` — ดึง config ของ role นั้น (auth, ใช้ load ตอน login)
+  - `PUT /api/role-permissions/:role/:menuKey` — อัปเดต permission (admin only)
+  - 🧪 test: 66 tests passed — GET all (admin-only), GET/:role (all auth), PUT (admin-only + validation) ✅
+  - 📝 commit: `feat(api): role permission management`
+
+- [ ] 2.9 Web: หน้าตั้งค่า Role Permission (admin only)
+  - route `/settings/roles` — แสดงตาราง role × menu พร้อม checkbox canView/canCreate/canUpdate/canDelete
+  - บันทึกทีละแถว (PUT per menuKey) พร้อม loading + feedback
+  - 🧪 test: build ผ่าน, admin เห็นหน้า settings, non-admin → 403
+  - 📝 commit: `feat(web): role permission settings page`
+
+- [ ] 2.10 Web: ใช้ Role Permission จาก server ใน UI
+  - load permissions ของ user's role หลัง login → เก็บใน Zustand `permissionStore`
+  - `DashboardLayout` sidebar render เฉพาะ menu ที่ `canView: true`
+  - `RoleGuard` / action buttons (เพิ่ม/แก้ไข/ลบ) แสดงตาม `canCreate/canUpdate/canDelete`
+  - 🧪 test: build ผ่าน, เปลี่ยน permission → menu/ปุ่มหาย-ปรากฏตาม config
+  - 📝 commit: `feat(web): dynamic menu and action visibility from role permissions`
 
 ---
 

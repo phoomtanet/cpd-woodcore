@@ -5,6 +5,7 @@ import errorHandler from './middleware/errorHandler'
 import authRouter from './routes/auth'
 import productsRouter from './routes/products'
 import usersRouter from './routes/users'
+import rolePermissionsRouter from './routes/role-permissions'
 
 const app = express()
 
@@ -23,6 +24,7 @@ app.get('/api/health', async (_req, res) => {
 app.use('/api/auth', authRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/users', usersRouter)
+app.use('/api/role-permissions', rolePermissionsRouter)
 
 // Global error handler — must be registered last
 app.use(errorHandler)

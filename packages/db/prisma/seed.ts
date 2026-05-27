@@ -100,6 +100,73 @@ async function main() {
     console.log(`✓ Product: [${product.productType}] ${product.name} (${product.sku})`)
   }
 
+  // Default role permissions
+  type PermDef = {
+    canView: boolean
+    canCreate: boolean
+    canUpdate: boolean
+    canDelete: boolean
+  }
+  type RoleKey = 'admin' | 'manager' | 'staff'
+
+  const MENUS = [
+    'dashboard',
+    'products',
+    'stock-in',
+    'stock-out',
+    'stock-adjust',
+    'stock-transfer',
+    'stock-card',
+    'alerts',
+    'reports',
+    'users',
+    'settings',
+  ]
+
+  const DEFAULTS: Record<RoleKey, Record<string, PermDef>> = {
+    admin: Object.fromEntries(
+      MENUS.map((m) => [m, { canView: true, canCreate: true, canUpdate: true, canDelete: true }])
+    ),
+    manager: {
+      dashboard: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      products: { canView: true, canCreate: true, canUpdate: true, canDelete: false },
+      'stock-in': { canView: true, canCreate: true, canUpdate: false, canDelete: false },
+      'stock-out': { canView: true, canCreate: true, canUpdate: false, canDelete: false },
+      'stock-adjust': { canView: true, canCreate: true, canUpdate: false, canDelete: false },
+      'stock-transfer': { canView: true, canCreate: true, canUpdate: false, canDelete: false },
+      'stock-card': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      alerts: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      reports: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      users: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      settings: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+    },
+    staff: {
+      dashboard: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      products: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'stock-in': { canView: true, canCreate: true, canUpdate: false, canDelete: false },
+      'stock-out': { canView: true, canCreate: true, canUpdate: false, canDelete: false },
+      'stock-adjust': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'stock-transfer': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'stock-card': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      alerts: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      reports: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      users: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      settings: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+    },
+  }
+
+  for (const role of ['admin', 'manager', 'staff'] as RoleKey[]) {
+    for (const menuKey of MENUS) {
+      const perm = DEFAULTS[role][menuKey]
+      await prisma.rolePermission.upsert({
+        where: { role_menuKey: { role, menuKey } },
+        update: {},
+        create: { role, menuKey, ...perm },
+      })
+    }
+    console.log(`✓ Permissions seeded for role: ${role}`)
+  }
+
   console.log('\nSeed completed.')
 }
 
