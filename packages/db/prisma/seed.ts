@@ -4,6 +4,32 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
+  // Seed product type items
+  const productTypeItems = [
+    { name: 'raw', label: 'วัตถุดิบ' },
+    { name: 'wip', label: 'WIP' },
+    { name: 'finished', label: 'สำเร็จรูป' },
+  ]
+  for (const pt of productTypeItems) {
+    await prisma.productTypeItem.upsert({
+      where: { name: pt.name },
+      update: { label: pt.label },
+      create: pt,
+    })
+    console.log(`✓ ProductType: ${pt.name} (${pt.label})`)
+  }
+
+  // Seed units
+  const units = ['แผ่น', 'ท่อน', 'กก.', 'กิโลกรัม', 'เส้น', 'ชิ้น', 'ม้วน', 'ถุง', 'กล่อง']
+  for (const name of units) {
+    await prisma.unit.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    })
+    console.log(`✓ Unit: ${name}`)
+  }
+
   // Seed roles first
   const roleData = [
     { name: 'admin', label: 'ผู้ดูแลระบบ' },
@@ -57,7 +83,7 @@ async function main() {
       sku: 'RM-EUCALYPTUS-001',
       barcode: '8851234560001',
       category: 'วัตถุดิบหลัก',
-      productType: 'raw' as const,
+      productType: 'raw',
       unit: 'ท่อน',
       costPrice: 120.0,
       salePrice: 0.0,
@@ -68,7 +94,7 @@ async function main() {
       sku: 'RM-LUMBER-2X4',
       barcode: '8851234560002',
       category: 'วัตถุดิบหลัก',
-      productType: 'raw' as const,
+      productType: 'raw',
       unit: 'แผ่น',
       costPrice: 45.0,
       salePrice: 0.0,
@@ -79,7 +105,7 @@ async function main() {
       sku: 'RM-NAIL-3IN',
       barcode: '8851234560003',
       category: 'อุปกรณ์',
-      productType: 'raw' as const,
+      productType: 'raw',
       unit: 'กิโลกรัม',
       costPrice: 55.0,
       salePrice: 0.0,
@@ -90,7 +116,7 @@ async function main() {
       sku: 'WIP-PALLET-FRAME',
       barcode: '8851234560004',
       category: 'งานระหว่างผลิต',
-      productType: 'wip' as const,
+      productType: 'wip',
       unit: 'ชิ้น',
       costPrice: 85.0,
       salePrice: 0.0,
@@ -101,7 +127,7 @@ async function main() {
       sku: 'FG-PALLET-80X120',
       barcode: '8851234560005',
       category: 'สินค้าสำเร็จรูป',
-      productType: 'finished' as const,
+      productType: 'finished',
       unit: 'ชิ้น',
       costPrice: 180.0,
       salePrice: 250.0,
@@ -134,6 +160,8 @@ async function main() {
     'reports',
     'users',
     'settings',
+    'master-types',
+    'master-units',
   ]
 
   const DEFAULTS: Record<RoleKey, Record<string, PermDef>> = {
@@ -152,6 +180,8 @@ async function main() {
       reports: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
       users: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       settings: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-types': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'master-units': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
     },
     staff: {
       dashboard: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
@@ -165,6 +195,8 @@ async function main() {
       reports: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       users: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       settings: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-types': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-units': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
     },
   }
 

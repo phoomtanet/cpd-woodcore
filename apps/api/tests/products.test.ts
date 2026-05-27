@@ -221,11 +221,11 @@ describe('POST /api/products', () => {
     expect(res.status).toBe(201)
   })
 
-  it('returns 400 when productType is invalid', async () => {
+  it('returns 400 when productType is empty string', async () => {
     const res = await request(app)
       .post('/api/products')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ ...VALID_BODY, productType: 'invalid' })
+      .send({ ...VALID_BODY, productType: '' })
     expect(res.status).toBe(400)
     expect(Array.isArray(res.body.error)).toBe(true)
     expect(res.body.error.find((e: { field: string }) => e.field === 'productType')).toBeDefined()

@@ -33,6 +33,17 @@ export interface ApiError {
   error: string | { field: string; message: string }[]
 }
 
+export interface ProductTypeItem {
+  id: number
+  name: string
+  label: string
+}
+
+export interface UnitItem {
+  id: number
+  name: string
+}
+
 export interface RolePermission {
   id: number
   role: Role

@@ -5,12 +5,7 @@ import { Form, Input, InputNumber, Select, Modal, App, Upload } from 'antd'
 import { PictureOutlined, UploadOutlined } from '@ant-design/icons'
 import type { Product, CreateProductDto } from '../types'
 import { productsApi } from '../services/productsApi'
-
-const PRODUCT_TYPE_OPTIONS = [
-  { value: 'raw', label: 'วัตถุดิบ' },
-  { value: 'wip', label: 'WIP' },
-  { value: 'finished', label: 'สำเร็จรูป' },
-]
+import { useMasterStore } from '@/store/masterStore'
 
 interface Props {
   open: boolean
@@ -34,6 +29,10 @@ export default function ProductFormModal({
   const [uploading, setUploading] = useState(false)
   const { message } = App.useApp()
   const isEdit = !!editing
+  const { productTypes, units } = useMasterStore()
+
+  const productTypeOptions = productTypes.map((pt) => ({ value: pt.name, label: pt.label }))
+  const unitOptions = units.map((u) => ({ value: u.name, label: u.name }))
 
   useEffect(() => {
     if (open) {
@@ -154,7 +153,7 @@ export default function ProductFormModal({
           label="ประเภท"
           rules={[{ required: true, message: 'กรุณาเลือกประเภท' }]}
         >
-          <Select options={PRODUCT_TYPE_OPTIONS} placeholder="เลือกประเภท" />
+          <Select options={productTypeOptions} placeholder="เลือกประเภท" />
         </Form.Item>
 
         <Form.Item
@@ -162,7 +161,7 @@ export default function ProductFormModal({
           label="หน่วย"
           rules={[{ required: true, message: 'กรุณากรอกหน่วย' }]}
         >
-          <Input placeholder="เช่น แผ่น, ท่อน, กก." />
+          <Select options={unitOptions} placeholder="เลือกหน่วย" showSearch allowClear />
         </Form.Item>
 
         <Form.Item name="barcode" label="Barcode">

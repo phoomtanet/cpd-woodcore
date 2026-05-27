@@ -9,14 +9,8 @@ import ProductTable from './ProductTable'
 import ProductFormModal from './ProductFormModal'
 import { useProducts } from '../hooks/useProducts'
 import { usePermissionStore } from '@/store/permissionStore'
+import { useMasterStore } from '@/store/masterStore'
 import type { Product } from '../types'
-
-const PRODUCT_TYPE_OPTIONS = [
-  { value: '', label: 'ทุกประเภท' },
-  { value: 'raw', label: 'วัตถุดิบ' },
-  { value: 'wip', label: 'WIP' },
-  { value: 'finished', label: 'สำเร็จรูป' },
-]
 
 export default function ProductsPage() {
   const {
@@ -32,6 +26,12 @@ export default function ProductsPage() {
     removeProduct,
     setProducts,
   } = useProducts()
+  const { productTypes } = useMasterStore()
+  const productTypeFilterOptions = [
+    { value: '', label: 'ทุกประเภท' },
+    ...productTypes.map((pt) => ({ value: pt.name, label: pt.label })),
+  ]
+
   const canCreate = usePermissionStore((s) => s.canCreate('products'))
   const canUpdate = usePermissionStore((s) => s.canUpdate('products'))
   const canDelete = usePermissionStore((s) => s.canDelete('products'))
@@ -86,7 +86,7 @@ export default function ProductsPage() {
             onSearch={(v: string) => setSearch(v)}
           />
           <Select
-            options={PRODUCT_TYPE_OPTIONS}
+            options={productTypeFilterOptions}
             value={productType ?? ''}
             onChange={(v: string) => setProductType(v || undefined)}
             style={{ width: 140 }}

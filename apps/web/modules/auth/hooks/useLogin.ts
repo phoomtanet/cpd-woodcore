@@ -7,6 +7,8 @@ import { authApi } from '../services/authApi'
 import { useAuthStore } from '@/store/authStore'
 import { usePermissionStore } from '@/store/permissionStore'
 import { useRolesStore } from '@/store/rolesStore'
+import { useMasterStore } from '@/store/masterStore'
+import { masterApi } from '@/modules/master/services/masterApi'
 import { ROUTES } from '@/constants'
 
 export function useLogin() {
@@ -15,6 +17,7 @@ export function useLogin() {
   const setAuth = useAuthStore((s) => s.setAuth)
   const setPermissions = usePermissionStore((s) => s.setPermissions)
   const setRoles = useRolesStore((s) => s.setRoles)
+  const { setProductTypes, setUnits } = useMasterStore()
   const router = useRouter()
 
   const login = async (email: string, password: string) => {
@@ -23,12 +26,16 @@ export function useLogin() {
     try {
       const { token, user } = await authApi.login({ email, password })
       setAuth(user, token)
-      const [permissions, roles] = await Promise.all([
+      const [permissions, roles, productTypes, units] = await Promise.all([
         authApi.getPermissionsByRole(user.role),
         authApi.getRoles(),
+        masterApi.getProductTypes(),
+        masterApi.getUnits(),
       ])
       setPermissions(permissions)
       setRoles(roles)
+      setProductTypes(productTypes)
+      setUnits(units)
       router.replace(ROUTES.DASHBOARD)
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

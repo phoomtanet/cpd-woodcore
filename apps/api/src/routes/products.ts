@@ -12,7 +12,7 @@ const createProductSchema = z.object({
   name: z.string({ error: 'Required' }).min(1),
   sku: z.string({ error: 'Required' }).min(1),
   unit: z.string({ error: 'Required' }).min(1),
-  productType: z.enum(['raw', 'wip', 'finished']).default('raw'),
+  productType: z.string().min(1).default('raw'),
   costPrice: z.number({ error: 'Required' }).nonnegative(),
   salePrice: z.number({ error: 'Required' }).nonnegative(),
   barcode: z.string().optional(),

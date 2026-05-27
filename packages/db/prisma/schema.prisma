@@ -8,12 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum ProductType {
-  raw
-  wip
-  finished
-}
-
 enum TxType {
   in
   out
@@ -50,7 +44,7 @@ model Product {
   barcode      String?
   image        String?
   category     String?
-  productType  ProductType        @default(raw)
+  productType  String             @default("raw")
   unit         String
   costPrice    Decimal            @db.Decimal(12, 2)
   salePrice    Decimal            @db.Decimal(12, 2)
@@ -74,6 +68,17 @@ model RolePermission {
   updatedAt DateTime @updatedAt
 
   @@unique([roleId, menuKey])
+}
+
+model ProductTypeItem {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  label String
+}
+
+model Unit {
+  id   Int    @id @default(autoincrement())
+  name String @unique
 }
 
 model StockTransaction {

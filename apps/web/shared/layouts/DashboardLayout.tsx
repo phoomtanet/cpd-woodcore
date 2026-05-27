@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Layout, Menu, theme, Typography, Avatar, Dropdown, Space } from 'antd'
 import {
@@ -22,6 +22,8 @@ import { ROUTES } from '@/constants'
 import { useAuthStore } from '@/store/authStore'
 import { usePermissionStore } from '@/store/permissionStore'
 import { useRolesStore } from '@/store/rolesStore'
+import { useMasterStore } from '@/store/masterStore'
+import { masterApi } from '@/modules/master/services/masterApi'
 
 const { Sider, Header, Content, Footer } = Layout
 
@@ -35,6 +37,25 @@ function isGroup(item: MenuDef): item is MenuGroup {
 
 const ALL_MENU_ITEMS: MenuDef[] = [
   { key: ROUTES.DASHBOARD, icon: <DashboardOutlined />, label: 'Dashboard', menuKey: 'dashboard' },
+  {
+    key: 'master-group',
+    icon: <AppstoreOutlined />,
+    label: 'ข้อมูลหลัก',
+    children: [
+      {
+        key: ROUTES.SETTINGS_MASTER_TYPES,
+        icon: <AppstoreOutlined />,
+        label: 'ประเภทสินค้า',
+        menuKey: 'master-types',
+      },
+      {
+        key: ROUTES.SETTINGS_MASTER_UNITS,
+        icon: <AppstoreOutlined />,
+        label: 'หน่วยนับ',
+        menuKey: 'master-units',
+      },
+    ],
+  },
   { key: ROUTES.PRODUCTS, icon: <AppstoreOutlined />, label: 'สินค้า', menuKey: 'products' },
   {
     key: 'stock',
@@ -77,10 +98,17 @@ const ALL_MENU_ITEMS: MenuDef[] = [
   { key: ROUTES.REPORTS, icon: <BarChartOutlined />, label: 'รายงาน', menuKey: 'reports' },
   { key: ROUTES.USERS, icon: <TeamOutlined />, label: 'จัดการผู้ใช้', menuKey: 'users' },
   {
-    key: ROUTES.SETTINGS_ROLES,
+    key: 'settings-group',
     icon: <SettingOutlined />,
-    label: 'ตั้งค่าสิทธิ์',
-    menuKey: 'settings',
+    label: 'ตั้งค่า',
+    children: [
+      {
+        key: ROUTES.SETTINGS_ROLES,
+        icon: <SettingOutlined />,
+        label: 'สิทธิ์การใช้งาน',
+        menuKey: 'settings',
+      },
+    ],
   },
 ]
 
@@ -98,6 +126,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, clearAuth } = useAuthStore()
   const { clearPermissions, canView } = usePermissionStore()
   const { clearRoles, getLabelByName } = useRolesStore()
+  const { productTypes, units, setProductTypes, setUnits, clearMaster } = useMasterStore()
+
+  useEffect(() => {
+    if (productTypes.length === 0 || units.length === 0) {
+      Promise.all([masterApi.getProductTypes(), masterApi.getUnits()])
+        .then(([pts, us]) => {
+          setProductTypes(pts)
+          setUnits(us)
+        })
+        .catch(() => {})
+    }
+  }, [productTypes.length, units.length, setProductTypes, setUnits])
 
   const visibleMenuItems = ALL_MENU_ITEMS.filter((item) => {
     if (isGroup(item)) return item.children.some((child) => canView(child.menuKey))
@@ -125,6 +165,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         clearAuth()
         clearPermissions()
         clearRoles()
+        clearMaster()
         router.push(ROUTES.LOGIN)
       },
     },
