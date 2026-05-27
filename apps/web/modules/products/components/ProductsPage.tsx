@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { Input, Select, Button, Alert, App, Space } from 'antd'
 import { PlusOutlined, AppstoreOutlined } from '@ant-design/icons'
 import PageHeader from '@/shared/components/PageHeader'
 import RoleGuard from '@/shared/guards/RoleGuard'
 import ProductTable from './ProductTable'
+import ProductFormModal from './ProductFormModal'
 import { useProducts } from '../hooks/useProducts'
 import { usePermissionStore } from '@/store/permissionStore'
 import type { Product } from '../types'
@@ -16,12 +18,7 @@ const PRODUCT_TYPE_OPTIONS = [
   { value: 'finished', label: 'สำเร็จรูป' },
 ]
 
-interface ProductsPageProps {
-  onEdit?: (product: Product) => void
-  onAdd?: () => void
-}
-
-export default function ProductsPage({ onEdit, onAdd }: ProductsPageProps) {
+export default function ProductsPage() {
   const {
     products,
     loading,
@@ -30,11 +27,37 @@ export default function ProductsPage({ onEdit, onAdd }: ProductsPageProps) {
     setSearch,
     productType,
     setProductType,
+    createProduct,
+    updateProduct,
     removeProduct,
+    setProducts,
   } = useProducts()
   const canCreate = usePermissionStore((s) => s.canCreate('products'))
   const canUpdate = usePermissionStore((s) => s.canUpdate('products'))
   const canDelete = usePermissionStore((s) => s.canDelete('products'))
+
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState<Product | null>(null)
+
+  const handleAdd = () => {
+    setEditing(null)
+    setModalOpen(true)
+  }
+
+  const handleEdit = (product: Product) => {
+    setEditing(product)
+    setModalOpen(true)
+  }
+
+  const handleClose = () => {
+    setModalOpen(false)
+    setEditing(null)
+  }
+
+  const handleImageUploaded = (updated: Product) => {
+    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+    setEditing(updated)
+  }
 
   return (
     <RoleGuard roles={['manager', 'admin']}>
@@ -43,8 +66,8 @@ export default function ProductsPage({ onEdit, onAdd }: ProductsPageProps) {
           title="รายการสินค้า"
           subtitle="จัดการสินค้าคงคลัง — วัตถุดิบ, WIP, สำเร็จรูป"
           extra={
-            canCreate && onAdd ? (
-              <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+            canCreate ? (
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
                 เพิ่มสินค้า
               </Button>
             ) : undefined
@@ -76,8 +99,17 @@ export default function ProductsPage({ onEdit, onAdd }: ProductsPageProps) {
           loading={loading}
           canUpdate={canUpdate}
           canDelete={canDelete}
-          onEdit={onEdit ?? (() => {})}
+          onEdit={handleEdit}
           onDelete={removeProduct}
+        />
+
+        <ProductFormModal
+          open={modalOpen}
+          editing={editing}
+          onClose={handleClose}
+          onCreate={createProduct}
+          onUpdate={updateProduct}
+          onImageUploaded={handleImageUploaded}
         />
       </App>
     </RoleGuard>

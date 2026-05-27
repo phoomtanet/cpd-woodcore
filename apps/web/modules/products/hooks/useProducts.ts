@@ -36,6 +36,18 @@ export function useProducts() {
     fetch()
   }, [fetch])
 
+  const createProduct = async (dto: Parameters<typeof productsApi.create>[0]) => {
+    const product = await productsApi.create(dto)
+    setProducts((prev) => [product, ...prev])
+    return product
+  }
+
+  const updateProduct = async (id: number, dto: Parameters<typeof productsApi.update>[1]) => {
+    const updated = await productsApi.update(id, dto)
+    setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)))
+    return updated
+  }
+
   const removeProduct = async (id: number) => {
     await productsApi.remove(id)
     setProducts((prev) => prev.filter((p) => p.id !== id))
@@ -43,6 +55,7 @@ export function useProducts() {
 
   return {
     products,
+    setProducts,
     loading,
     error,
     search,
@@ -50,6 +63,8 @@ export function useProducts() {
     productType,
     setProductType,
     refetch: fetch,
+    createProduct,
+    updateProduct,
     removeProduct,
   }
 }
