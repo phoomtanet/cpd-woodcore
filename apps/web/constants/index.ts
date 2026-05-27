@@ -13,10 +13,4 @@ export const ROUTES = {
   SETTINGS_ROLES: '/settings/roles',
 } as const
 
-export const ROLE_LABELS: Record<string, string> = {
-  admin: 'ผู้ดูแลระบบ',
-  manager: 'ผู้จัดการ',
-  staff: 'พนักงาน',
-}
-
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api'

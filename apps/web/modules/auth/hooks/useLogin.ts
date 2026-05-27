@@ -6,6 +6,7 @@ import axios from 'axios'
 import { authApi } from '../services/authApi'
 import { useAuthStore } from '@/store/authStore'
 import { usePermissionStore } from '@/store/permissionStore'
+import { useRolesStore } from '@/store/rolesStore'
 import { ROUTES } from '@/constants'
 
 export function useLogin() {
@@ -13,6 +14,7 @@ export function useLogin() {
   const [error, setError] = useState<string | null>(null)
   const setAuth = useAuthStore((s) => s.setAuth)
   const setPermissions = usePermissionStore((s) => s.setPermissions)
+  const setRoles = useRolesStore((s) => s.setRoles)
   const router = useRouter()
 
   const login = async (email: string, password: string) => {
@@ -21,8 +23,12 @@ export function useLogin() {
     try {
       const { token, user } = await authApi.login({ email, password })
       setAuth(user, token)
-      const permissions = await authApi.getPermissionsByRole(user.role)
+      const [permissions, roles] = await Promise.all([
+        authApi.getPermissionsByRole(user.role),
+        authApi.getRoles(),
+      ])
       setPermissions(permissions)
+      setRoles(roles)
       router.replace(ROUTES.DASHBOARD)
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

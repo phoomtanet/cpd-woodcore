@@ -18,9 +18,10 @@ import {
   UserOutlined,
   LogoutOutlined,
 } from '@ant-design/icons'
-import { ROUTES, ROLE_LABELS } from '@/constants'
+import { ROUTES } from '@/constants'
 import { useAuthStore } from '@/store/authStore'
 import { usePermissionStore } from '@/store/permissionStore'
+import { useRolesStore } from '@/store/rolesStore'
 
 const { Sider, Header, Content, Footer } = Layout
 
@@ -96,6 +97,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   } = theme.useToken()
   const { user, clearAuth } = useAuthStore()
   const { clearPermissions, canView } = usePermissionStore()
+  const { clearRoles, getLabelByName } = useRolesStore()
 
   const visibleMenuItems = ALL_MENU_ITEMS.filter((item) => {
     if (isGroup(item)) return item.children.some((child) => canView(child.menuKey))
@@ -122,6 +124,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       onClick: () => {
         clearAuth()
         clearPermissions()
+        clearRoles()
         router.push(ROUTES.LOGIN)
       },
     },
@@ -172,7 +175,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <span>
                   {user.name}
                   <Typography.Text type="secondary" style={{ marginLeft: 6, fontSize: 12 }}>
-                    ({ROLE_LABELS[user.role] ?? user.role})
+                    ({getLabelByName(user.role)})
                   </Typography.Text>
                 </span>
               )}

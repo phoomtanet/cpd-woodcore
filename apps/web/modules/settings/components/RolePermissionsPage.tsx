@@ -7,7 +7,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import RoleGuard from '@/shared/guards/RoleGuard'
 import RoleEditModal from './RoleEditModal'
 import { useRolePermissions } from '../hooks/useRolePermissions'
-import { ROLE_LABELS } from '@/constants'
+import { useRolesStore } from '@/store/rolesStore'
 import type { Role, RolePermission } from '@/types'
 
 type RoleRow = { role: Role; data: RolePermission[] }
@@ -15,6 +15,7 @@ type RoleRow = { role: Role; data: RolePermission[] }
 export default function RolePermissionsPage() {
   const { permissions, roles, loading, error, updatePermission } = useRolePermissions()
   const [editingRole, setEditingRole] = useState<Role | null>(null)
+  const getLabelByName = useRolesStore((s) => s.getLabelByName)
 
   const tableData: RoleRow[] = roles.map((role) => ({
     role,
@@ -25,7 +26,7 @@ export default function RolePermissionsPage() {
     {
       title: 'Role',
       key: 'role',
-      render: (_: unknown, record: RoleRow) => ROLE_LABELS[record.role] ?? record.role,
+      render: (_: unknown, record: RoleRow) => getLabelByName(record.role),
     },
     {
       title: 'สถานะ',

@@ -4,7 +4,7 @@ import { Table, Tag, Button, Space, Popconfirm, App } from 'antd'
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import type { User } from '@/types'
-import { ROLE_LABELS } from '@/constants'
+import { useRolesStore } from '@/store/rolesStore'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'red',
@@ -21,6 +21,7 @@ interface UserTableProps {
 
 export default function UserTable({ users, loading, onEdit, onDelete }: UserTableProps) {
   const { message } = App.useApp()
+  const getLabelByName = useRolesStore((s) => s.getLabelByName)
 
   const handleDelete = async (id: number) => {
     try {
@@ -47,7 +48,7 @@ export default function UserTable({ users, loading, onEdit, onDelete }: UserTabl
       dataIndex: 'role',
       key: 'role',
       render: (role: string) => (
-        <Tag color={ROLE_COLORS[role] ?? 'default'}>{ROLE_LABELS[role] ?? role}</Tag>
+        <Tag color={ROLE_COLORS[role] ?? 'default'}>{getLabelByName(role)}</Tag>
       ),
     },
     {

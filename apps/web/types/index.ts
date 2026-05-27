@@ -1,5 +1,12 @@
 export type Role = 'admin' | 'manager' | 'staff'
 
+export interface RoleItem {
+  id: number
+  name: string
+  label: string
+  createdAt: string
+}
+
 export interface User {
   id: number
   name: string

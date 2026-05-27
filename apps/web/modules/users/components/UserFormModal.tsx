@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Form, Input, Select, Switch, Modal, App } from 'antd'
 import type { User } from '@/types'
 import type { CreateUserDto, UpdateUserDto } from '../types'
+import { useRolesStore } from '@/store/rolesStore'
 
 interface UserFormModalProps {
   open: boolean
@@ -12,12 +13,6 @@ interface UserFormModalProps {
   onCreate: (dto: CreateUserDto) => Promise<unknown>
   onUpdate: (id: number, dto: UpdateUserDto) => Promise<unknown>
 }
-
-const ROLE_OPTIONS = [
-  { value: 'admin', label: 'ผู้ดูแลระบบ' },
-  { value: 'manager', label: 'ผู้จัดการ' },
-  { value: 'staff', label: 'พนักงาน' },
-]
 
 export default function UserFormModal({
   open,
@@ -29,6 +24,8 @@ export default function UserFormModal({
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const { message } = App.useApp()
+  const roles = useRolesStore((s) => s.roles)
+  const roleOptions = roles.map((r) => ({ value: r.name, label: r.label }))
   const isEdit = !!editing
 
   useEffect(() => {
@@ -107,7 +104,7 @@ export default function UserFormModal({
           label="Role"
           rules={[{ required: true, message: 'กรุณาเลือก Role' }]}
         >
-          <Select options={ROLE_OPTIONS} placeholder="เลือก Role" />
+          <Select options={roleOptions} placeholder="เลือก Role" />
         </Form.Item>
 
         {isEdit && (
