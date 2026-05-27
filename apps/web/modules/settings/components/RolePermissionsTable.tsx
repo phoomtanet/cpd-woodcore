@@ -66,18 +66,62 @@ export default function RolePermissionsTable({ role, data, onUpdate }: Props) {
     }
   }
 
+  const handleCheckAll = async (record: RolePermission, value: boolean) => {
+    const loadingKey = `${record.menuKey}:all`
+    setLoadingKeys((prev) => new Set(prev).add(loadingKey))
+    try {
+      const dto: UpdatePermissionDto = {
+        canView: value,
+        canCreate: value,
+        canUpdate: value,
+        canDelete: value,
+      }
+      await onUpdate(role, record.menuKey, dto)
+      message.success('บันทึกสำเร็จ')
+    } catch {
+      message.error('บันทึกไม่สำเร็จ')
+    } finally {
+      setLoadingKeys((prev) => {
+        const next = new Set(prev)
+        next.delete(loadingKey)
+        return next
+      })
+    }
+  }
+
   const columns: ColumnsType<RolePermission> = [
     {
       title: 'เมนู',
       dataIndex: 'menuKey',
       key: 'menuKey',
-      width: 180,
+      width: 160,
       render: (key: string) => MENU_LABELS[key] ?? key,
+    },
+    {
+      title: 'ทั้งหมด',
+      key: 'all',
+      width: 80,
+      align: 'center' as const,
+      render: (_: unknown, record: RolePermission) => {
+        const checkedCount = PERM_FIELDS.filter(({ key }) => record[key]).length
+        const allChecked = checkedCount === PERM_FIELDS.length
+        const indeterminate = checkedCount > 0 && !allChecked
+        return (
+          <Checkbox
+            checked={allChecked}
+            indeterminate={indeterminate}
+            disabled={loadingKeys.has(`${record.menuKey}:all`)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleCheckAll(record, e.target.checked)
+            }
+          />
+        )
+      },
     },
     ...PERM_FIELDS.map(({ key, label }) => ({
       title: label,
       key,
-      width: 80,
+      width: 70,
       align: 'center' as const,
       render: (_: unknown, record: RolePermission) => {
         const loadingKey = `${record.menuKey}:${key}`
