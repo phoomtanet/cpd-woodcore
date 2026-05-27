@@ -16,21 +16,20 @@ export interface StockTransaction {
 export interface StockInDto {
   productId: number
   quantity: number
-  reason?: string
   note?: string
 }
 
 export interface StockOutDto {
   productId: number
   quantity: number
-  reason?: string
   note?: string
 }
 
 export interface StockAdjustDto {
   productId: number
   quantity: number
-  reason: string
+  reason?: string
+  note?: string
 }
 
 export interface StockTransferDto {
