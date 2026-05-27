@@ -12,13 +12,14 @@ jest.mock('@cpd/db', () => ({
   default: {
     $queryRaw: jest.fn(),
     user: {
-      findUnique: jest.fn().mockResolvedValue({
+      findFirst: jest.fn().mockResolvedValue({
         id: 1,
         name: 'Admin',
         email: 'admin@cpd.com',
         role: 'admin',
         isActive: true,
         createdAt: new Date(),
+        deletedAt: null,
       }),
       findMany: jest.fn().mockResolvedValue([
         {
@@ -28,6 +29,7 @@ jest.mock('@cpd/db', () => ({
           role: 'admin',
           isActive: true,
           createdAt: new Date(),
+          deletedAt: null,
         },
         {
           id: 2,
@@ -36,6 +38,7 @@ jest.mock('@cpd/db', () => ({
           role: 'manager',
           isActive: true,
           createdAt: new Date(),
+          deletedAt: null,
         },
       ]),
       create: jest.fn().mockResolvedValue({
@@ -45,6 +48,7 @@ jest.mock('@cpd/db', () => ({
         role: 'staff',
         isActive: true,
         createdAt: new Date(),
+        deletedAt: null,
       }),
       update: jest.fn().mockResolvedValue({
         id: 2,
@@ -53,11 +57,16 @@ jest.mock('@cpd/db', () => ({
         role: 'manager',
         isActive: true,
         createdAt: new Date(),
+        deletedAt: null,
       }),
-      delete: jest.fn().mockResolvedValue({ id: 3 }),
     },
   },
 }))
+
+import prisma from '@cpd/db'
+const mockFindFirst = prisma.user.findFirst as jest.Mock
+const mockFindMany = prisma.user.findMany as jest.Mock
+const mockUpdate = prisma.user.update as jest.Mock
 
 describe('GET /api/users — role guard', () => {
   it('returns 401 when no token', async () => {
@@ -80,6 +89,13 @@ describe('GET /api/users — role guard', () => {
     expect(res.status).toBe(200)
     expect(Array.isArray(res.body.data)).toBe(true)
     expect(res.body.data).toHaveLength(2)
+  })
+
+  it('filters out soft-deleted users', async () => {
+    await request(app).get('/api/users').set('Authorization', `Bearer ${adminToken}`)
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ deletedAt: null }) })
+    )
   })
 })
 
@@ -146,13 +162,17 @@ describe('PUT /api/users/:id — update user', () => {
   })
 })
 
-describe('DELETE /api/users/:id', () => {
-  it('returns 200 when admin deletes user', async () => {
+describe('DELETE /api/users/:id — soft delete', () => {
+  it('returns 200 and soft-deletes (sets deletedAt)', async () => {
+    mockUpdate.mockResolvedValueOnce({ id: 3, deletedAt: new Date() })
     const res = await request(app)
       .delete('/api/users/3')
       .set('Authorization', `Bearer ${adminToken}`)
     expect(res.status).toBe(200)
     expect(res.body.data).toBeNull()
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ deletedAt: expect.any(Date) }) })
+    )
   })
 
   it('returns 403 when manager tries to delete', async () => {
@@ -160,5 +180,25 @@ describe('DELETE /api/users/:id', () => {
       .delete('/api/users/3')
       .set('Authorization', `Bearer ${managerToken}`)
     expect(res.status).toBe(403)
+  })
+
+  it('returns 404 when user not found (already soft-deleted or never existed)', async () => {
+    mockFindFirst.mockResolvedValueOnce(null)
+    const res = await request(app)
+      .delete('/api/users/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('POST /api/auth/login — soft-deleted user', () => {
+  it('returns 401 when user is soft-deleted', async () => {
+    // findFirst with deletedAt: null returns null for soft-deleted user
+    mockFindFirst.mockResolvedValueOnce(null)
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'deleted@cpd.com', password: 'password123' })
+    expect(res.status).toBe(401)
+    expect(res.body.error).toBe('Invalid credentials')
   })
 })

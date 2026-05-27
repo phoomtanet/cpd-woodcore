@@ -12,15 +12,19 @@ const userSelect = {
 
 export const UserRepository = {
   findByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } })
+    return prisma.user.findFirst({ where: { email, deletedAt: null } })
   },
 
   findByIdPublic(id: number) {
-    return prisma.user.findUnique({ where: { id }, select: userSelect })
+    return prisma.user.findFirst({ where: { id, deletedAt: null }, select: userSelect })
   },
 
   findAll() {
-    return prisma.user.findMany({ select: userSelect, orderBy: { createdAt: 'asc' } })
+    return prisma.user.findMany({
+      where: { deletedAt: null },
+      select: userSelect,
+      orderBy: { createdAt: 'asc' },
+    })
   },
 
   create(data: Prisma.UserCreateInput) {
@@ -32,6 +36,6 @@ export const UserRepository = {
   },
 
   deleteById(id: number) {
-    return prisma.user.delete({ where: { id } })
+    return prisma.user.update({ where: { id }, data: { deletedAt: new Date() } })
   },
 }

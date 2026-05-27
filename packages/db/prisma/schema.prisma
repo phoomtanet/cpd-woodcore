@@ -35,6 +35,7 @@ model User {
   role         Role               @default(staff)
   isActive     Boolean            @default(true)
   createdAt    DateTime           @default(now())
+  deletedAt    DateTime?
   transactions StockTransaction[]
 }
 

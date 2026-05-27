@@ -171,6 +171,7 @@ model User {
   role         Role     @default(staff)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
+  deletedAt    DateTime?
   transactions StockTransaction[]
 }
 
@@ -554,6 +555,10 @@ model Product {
   - 📝 commit: `feat(api): user management endpoints`
 
   - [x] FIX #1: jest.mock hoisted ก่อน mockUsers/mockNewUser declarations | fix: inline mock data ใน jest.mock() factory โดยตรง
+
+- [x] 2.3.1 ปรับ DELETE user เป็น Soft Delete (ตาม Dev Standard #9)
+  - 🧪 test: 52 tests passed — DELETE sets deletedAt, GET list filters deletedAt:null, login soft-deleted → 401 ✅
+  - 📝 commit: `feat(api): soft delete users`
     - 📝 commit: `fix(api): inline mock data in users test`
 
 - [x] 2.4 Web: หน้า Login (form email/password, เก็บ JWT ใน httpOnly cookie)

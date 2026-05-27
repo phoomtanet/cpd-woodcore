@@ -13,13 +13,14 @@ jest.mock('@cpd/db', () => ({
   default: {
     $queryRaw: jest.fn(),
     user: {
-      findUnique: jest.fn().mockResolvedValue({
+      findFirst: jest.fn().mockResolvedValue({
         id: 1,
         name: 'ผู้ดูแลระบบ',
         email: 'admin@cpd.com',
         role: 'admin',
         isActive: true,
         createdAt: new Date(),
+        deletedAt: null,
       }),
     },
     product: {

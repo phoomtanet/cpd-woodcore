@@ -18,13 +18,13 @@ jest.mock('@cpd/db', () => ({
   __esModule: true,
   default: {
     user: {
-      findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
   },
 }))
 
 import prisma from '@cpd/db'
-const mockFindUnique = prisma.user.findUnique as jest.Mock
+const mockFindUnique = prisma.user.findFirst as jest.Mock
 
 describe('POST /api/auth/login', () => {
   beforeEach(() => jest.clearAllMocks())
