@@ -20,28 +20,67 @@ import {
 } from '@ant-design/icons'
 import { ROUTES, ROLE_LABELS } from '@/constants'
 import { useAuthStore } from '@/store/authStore'
+import { usePermissionStore } from '@/store/permissionStore'
 
 const { Sider, Header, Content, Footer } = Layout
 
-const menuItems = [
-  { key: ROUTES.DASHBOARD, icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: ROUTES.PRODUCTS, icon: <AppstoreOutlined />, label: 'สินค้า' },
+type MenuLeaf = { key: string; icon: React.ReactNode; label: string; menuKey: string }
+type MenuGroup = { key: string; icon: React.ReactNode; label: string; children: MenuLeaf[] }
+type MenuDef = MenuLeaf | MenuGroup
+
+function isGroup(item: MenuDef): item is MenuGroup {
+  return 'children' in item
+}
+
+const ALL_MENU_ITEMS: MenuDef[] = [
+  { key: ROUTES.DASHBOARD, icon: <DashboardOutlined />, label: 'Dashboard', menuKey: 'dashboard' },
+  { key: ROUTES.PRODUCTS, icon: <AppstoreOutlined />, label: 'สินค้า', menuKey: 'products' },
   {
     key: 'stock',
     icon: <FileTextOutlined />,
     label: 'คลังสินค้า',
     children: [
-      { key: ROUTES.STOCK_IN, icon: <ImportOutlined />, label: 'รับสินค้าเข้า' },
-      { key: ROUTES.STOCK_OUT, icon: <ExportOutlined />, label: 'เบิกสินค้าออก' },
-      { key: ROUTES.STOCK_ADJUST, icon: <ControlOutlined />, label: 'ปรับสต๊อก' },
-      { key: ROUTES.STOCK_TRANSFER, icon: <SwapOutlined />, label: 'โอนย้าย' },
-      { key: ROUTES.STOCK_CARD, icon: <FileTextOutlined />, label: 'Stock Card' },
+      {
+        key: ROUTES.STOCK_IN,
+        icon: <ImportOutlined />,
+        label: 'รับสินค้าเข้า',
+        menuKey: 'stock-in',
+      },
+      {
+        key: ROUTES.STOCK_OUT,
+        icon: <ExportOutlined />,
+        label: 'เบิกสินค้าออก',
+        menuKey: 'stock-out',
+      },
+      {
+        key: ROUTES.STOCK_ADJUST,
+        icon: <ControlOutlined />,
+        label: 'ปรับสต๊อก',
+        menuKey: 'stock-adjust',
+      },
+      {
+        key: ROUTES.STOCK_TRANSFER,
+        icon: <SwapOutlined />,
+        label: 'โอนย้าย',
+        menuKey: 'stock-transfer',
+      },
+      {
+        key: ROUTES.STOCK_CARD,
+        icon: <FileTextOutlined />,
+        label: 'Stock Card',
+        menuKey: 'stock-card',
+      },
     ],
   },
-  { key: ROUTES.ALERTS, icon: <BellOutlined />, label: 'Low Stock Alert' },
-  { key: ROUTES.REPORTS, icon: <BarChartOutlined />, label: 'รายงาน' },
-  { key: ROUTES.USERS, icon: <TeamOutlined />, label: 'จัดการผู้ใช้' },
-  { key: ROUTES.SETTINGS_ROLES, icon: <SettingOutlined />, label: 'ตั้งค่าสิทธิ์' },
+  { key: ROUTES.ALERTS, icon: <BellOutlined />, label: 'Low Stock Alert', menuKey: 'alerts' },
+  { key: ROUTES.REPORTS, icon: <BarChartOutlined />, label: 'รายงาน', menuKey: 'reports' },
+  { key: ROUTES.USERS, icon: <TeamOutlined />, label: 'จัดการผู้ใช้', menuKey: 'users' },
+  {
+    key: ROUTES.SETTINGS_ROLES,
+    icon: <SettingOutlined />,
+    label: 'ตั้งค่าสิทธิ์',
+    menuKey: 'settings',
+  },
 ]
 
 interface DashboardLayoutProps {
@@ -56,6 +95,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     token: { colorBgContainer },
   } = theme.useToken()
   const { user, clearAuth } = useAuthStore()
+  const { clearPermissions, canView } = usePermissionStore()
+
+  const visibleMenuItems = ALL_MENU_ITEMS.filter((item) => {
+    if (isGroup(item)) return item.children.some((child) => canView(child.menuKey))
+    return canView(item.menuKey)
+  }).map((item) => {
+    if (!isGroup(item)) return item
+    return {
+      ...item,
+      children: item.children.filter((child) => canView(child.menuKey)),
+    }
+  })
 
   const userMenuItems = [
     {
@@ -64,6 +115,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       label: 'ออกจากระบบ',
       onClick: () => {
         clearAuth()
+        clearPermissions()
         router.push(ROUTES.LOGIN)
       },
     },
@@ -91,7 +143,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           mode="inline"
           selectedKeys={[pathname]}
           defaultOpenKeys={['stock']}
-          items={menuItems}
+          items={visibleMenuItems}
           onClick={({ key }: { key: string }) => router.push(key)}
         />
       </Sider>

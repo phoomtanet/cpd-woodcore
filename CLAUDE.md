@@ -652,11 +652,11 @@ model RolePermission {
   - 🧪 test: `npm run build` → `/settings/roles` route ✅ | RoleGuard roles=['admin'] → non-admin 403 ✅
   - 📝 commit: `feat(web): role permission settings page`
 
-- [ ] 2.10 Web: ใช้ Role Permission จาก server ใน UI
+- [x] 2.10 Web: ใช้ Role Permission จาก server ใน UI
   - load permissions ของ user's role หลัง login → เก็บใน Zustand `permissionStore`
   - `DashboardLayout` sidebar render เฉพาะ menu ที่ `canView: true`
   - `RoleGuard` / action buttons (เพิ่ม/แก้ไข/ลบ) แสดงตาม `canCreate/canUpdate/canDelete`
-  - 🧪 test: build ผ่าน, เปลี่ยน permission → menu/ปุ่มหาย-ปรากฏตาม config
+  - 🧪 test: `npm run build` → pass ✅ | 79 tests passed ✅
   - 📝 commit: `feat(web): dynamic menu and action visibility from role permissions`
 
 - [x] 2.11 DB + API: สร้าง Role table แทน enum — เก็บ `name` + `label` ใน DB
