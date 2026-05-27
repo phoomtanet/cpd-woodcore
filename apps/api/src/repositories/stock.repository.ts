@@ -26,6 +26,19 @@ export const StockRepository = {
     ])
   },
 
+  async stockOut(productId: number, quantity: number, userId: number, note?: string) {
+    return prisma.$transaction([
+      prisma.product.update({
+        where: { id: productId },
+        data: { currentStock: { decrement: quantity } },
+      }),
+      prisma.stockTransaction.create({
+        data: { productId, type: 'out', quantity, note, userId },
+        include: { product: true },
+      }),
+    ])
+  },
+
   findTransactionsByProduct(productId: number) {
     return prisma.stockTransaction.findMany({
       where: { productId },

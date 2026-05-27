@@ -12,12 +12,26 @@ const stockInSchema = z.object({
   note: z.string().optional(),
 })
 
+const stockOutSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+  note: z.string().optional(),
+})
+
 router.post(
   '/in',
   authenticate,
   requireRole('staff', 'manager', 'admin'),
   validate(stockInSchema),
   StockController.stockIn
+)
+
+router.post(
+  '/out',
+  authenticate,
+  requireRole('staff', 'manager', 'admin'),
+  validate(stockOutSchema),
+  StockController.stockOut
 )
 
 export default router

@@ -26,6 +26,12 @@ export class NotFoundError extends HttpError {
   }
 }
 
+export class BadRequestError extends HttpError {
+  constructor(message = 'Bad request') {
+    super(400, message)
+  }
+}
+
 export class ConflictError extends HttpError {
   constructor(message = 'Conflict') {
     super(409, message)

@@ -1,9 +1,9 @@
 import prisma from '@cpd/db'
-import type { Prisma, ProductType } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 
 export interface ProductFilter {
   search?: string
-  productType?: ProductType
+  productType?: string
 }
 
 export const ProductRepository = {

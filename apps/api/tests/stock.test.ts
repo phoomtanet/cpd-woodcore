@@ -157,3 +157,89 @@ describe('POST /api/stock/in', () => {
     expect(mockTransaction).toHaveBeenCalledTimes(1)
   })
 })
+
+// ─── POST /api/stock/out ───────────────────────────────────────────────────
+
+describe('POST /api/stock/out', () => {
+  const MOCK_OUT_TX = { ...MOCK_TX, type: 'out', quantity: 3 }
+
+  it('returns 401 when no token', async () => {
+    const res = await request(app).post('/api/stock/out').send({ productId: 1, quantity: 3 })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 400 when productId missing', async () => {
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ quantity: 3 })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when quantity is zero', async () => {
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 0 })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when product not found', async () => {
+    mockFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 999, quantity: 3 })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 400 when quantity exceeds currentStock', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 2 })
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 5 })
+    expect(res.status).toBe(400)
+    expect(res.body.error).toMatch(/insufficient stock/i)
+  })
+
+  it('returns 400 when currentStock is exactly zero', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 0 })
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 1 })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 201 when quantity equals currentStock (exact depletion)', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 5 })
+    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 0 }, MOCK_OUT_TX])
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 5 })
+    expect(res.status).toBe(201)
+    expect(res.body.data.type).toBe('out')
+  })
+
+  it('returns 201 for manager', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 7 }, MOCK_OUT_TX])
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 3 })
+    expect(res.status).toBe(201)
+  })
+
+  it('calls $transaction atomically on success', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 7 }, MOCK_OUT_TX])
+    await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 3 })
+    expect(mockTransaction).toHaveBeenCalledTimes(1)
+  })
+})

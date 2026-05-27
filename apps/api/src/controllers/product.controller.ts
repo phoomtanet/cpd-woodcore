@@ -1,6 +1,5 @@
 import type { Request, Response, NextFunction } from 'express'
 import { ProductService } from '../services/product.service'
-import type { ProductType } from '@prisma/client'
 
 export const ProductController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -8,7 +7,7 @@ export const ProductController = {
       const { search, productType } = req.query
       const products = await ProductService.findAll({
         search: typeof search === 'string' ? search : undefined,
-        productType: typeof productType === 'string' ? (productType as ProductType) : undefined,
+        productType: typeof productType === 'string' ? productType : undefined,
       })
       res.json({ data: products, message: 'ok' })
     } catch (err) {
