@@ -6,3 +6,8 @@ dist/
 *.log
 coverage/
 .prisma/
+
+# Project docs (not for version control)
+CLAUDE.md
+CLAUDE_TEMPLATE.md
+requirement.md

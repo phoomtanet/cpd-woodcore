@@ -101,10 +101,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     if (isGroup(item)) return item.children.some((child) => canView(child.menuKey))
     return canView(item.menuKey)
   }).map((item) => {
-    if (!isGroup(item)) return item
+    if (!isGroup(item)) {
+      return { key: item.key, icon: item.icon, label: item.label }
+    }
     return {
-      ...item,
-      children: item.children.filter((child) => canView(child.menuKey)),
+      key: item.key,
+      icon: item.icon,
+      label: item.label,
+      children: item.children
+        .filter((child) => canView(child.menuKey))
+        .map((child) => ({ key: child.key, icon: child.icon, label: child.label })),
     }
   })
 
