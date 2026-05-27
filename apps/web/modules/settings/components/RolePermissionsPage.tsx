@@ -1,15 +1,45 @@
 'use client'
 
-import { Alert, Tabs, App, Spin } from 'antd'
-import { SettingOutlined } from '@ant-design/icons'
+import { useState } from 'react'
+import { Table, Tag, Button, App, Spin, Alert } from 'antd'
+import { EditOutlined, SettingOutlined } from '@ant-design/icons'
 import PageHeader from '@/shared/components/PageHeader'
 import RoleGuard from '@/shared/guards/RoleGuard'
-import RolePermissionsTable from './RolePermissionsTable'
+import RoleEditModal from './RoleEditModal'
 import { useRolePermissions } from '../hooks/useRolePermissions'
 import { ROLE_LABELS } from '@/constants'
+import type { Role, RolePermission } from '@/types'
+
+type RoleRow = { role: Role; data: RolePermission[] }
 
 export default function RolePermissionsPage() {
   const { permissions, roles, loading, error, updatePermission } = useRolePermissions()
+  const [editingRole, setEditingRole] = useState<Role | null>(null)
+
+  const tableData: RoleRow[] = roles.map((role) => ({
+    role,
+    data: permissions[role] ?? [],
+  }))
+
+  const columns = [
+    {
+      title: 'Role',
+      key: 'role',
+      render: (_: unknown, record: RoleRow) => ROLE_LABELS[record.role] ?? record.role,
+    },
+    {
+      title: 'สถานะ',
+      key: 'status',
+      render: () => <Tag color="success">ใช้งาน</Tag>,
+    },
+    {
+      title: 'จัดการ',
+      key: 'actions',
+      render: (_: unknown, record: RoleRow) => (
+        <Button type="text" icon={<EditOutlined />} onClick={() => setEditingRole(record.role)} />
+      ),
+    },
+  ]
 
   return (
     <RoleGuard roles={['admin']}>
@@ -27,19 +57,22 @@ export default function RolePermissionsPage() {
             <Spin size="large" />
           </div>
         ) : (
-          <Tabs
-            defaultActiveKey="manager"
-            items={roles.map((role) => ({
-              key: role,
-              label: ROLE_LABELS[role] ?? role,
-              children: (
-                <RolePermissionsTable
-                  role={role}
-                  data={permissions[role]}
-                  onUpdate={updatePermission}
-                />
-              ),
-            }))}
+          <Table
+            columns={columns}
+            dataSource={tableData}
+            rowKey="role"
+            pagination={false}
+            size="small"
+          />
+        )}
+
+        {editingRole && (
+          <RoleEditModal
+            open={!!editingRole}
+            role={editingRole}
+            data={permissions[editingRole] ?? []}
+            onClose={() => setEditingRole(null)}
+            onUpdate={updatePermission}
           />
         )}
       </App>

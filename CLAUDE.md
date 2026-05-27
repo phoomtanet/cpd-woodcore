@@ -659,6 +659,33 @@ model RolePermission {
   - 🧪 test: build ผ่าน, เปลี่ยน permission → menu/ปุ่มหาย-ปรากฏตาม config
   - 📝 commit: `feat(web): dynamic menu and action visibility from role permissions`
 
+- [ ] 2.11 DB + API: สร้าง Role table แทน enum — เก็บ `name` + `label` ใน DB
+  - ลบ `enum Role` ออกจาก schema + สร้าง `model Role { id, name, label, createdAt }`
+  - ปรับ `User.role` → `User.roleId Int` (FK → Role)
+  - ปรับ `RolePermission.role` → `RolePermission.roleId Int` (FK → Role)
+  - migrate + seed roles เริ่มต้น: `{ name: 'admin', label: 'ผู้ดูแลระบบ' }` ฯลฯ
+  - เพิ่ม `GET /api/roles` — ดึง role ทั้งหมด (auth), `POST/PUT/DELETE /api/roles` (admin only, สำหรับสร้าง/แก้ role ใหม่)
+  - ปรับ middleware `requireRole` ให้ตรวจจาก `role.name` แทน enum string
+  - 🧪 test: GET roles → list ถูกต้อง, CRUD roles → admin-only, FK constraint ถูกต้อง
+  - 📝 commit: `feat(api): role table replaces enum`
+
+- [ ] 2.12 Web: ดึง Role list + label จาก API แทน hardcode
+  - ลบ `ROLE_LABELS` ออกจาก `constants/index.ts`
+  - สร้าง `rolesStore` (Zustand) — เก็บ role list หลัง login, clear ตอน logout
+  - `UserFormModal` select options ดึงจาก `rolesStore` แทน hardcode `ROLE_OPTIONS`
+  - `RolePermissionsPage` tab label ดึงจาก `rolesStore`
+  - ทุก component ที่แสดง role label ใช้ `rolesStore` แทน `ROLE_LABELS`
+  - 🧪 test: build ผ่าน, เปลี่ยน label ใน DB → UI แสดงตาม
+  - 📝 commit: `feat(web): role labels from api instead of hardcode`
+
+- [x] 2.12.1 Web: ปรับ UI หน้า `settings/roles` ให้มีรูปแบบเดียวกับหน้า users
+  - เปลี่ยนจาก Tabs + checkbox grid → **ตาราง 1 ตาราง** (แบบเดียวกับ UserTable)
+  - แถว = role (ชื่อ + label tag สี), คอลัมน์ = menu แต่ละอัน
+  - แต่ละ cell แสดง permission flags เป็น Tag/Badge แทนที่จะเป็น checkbox — กดที่แถวเพื่อเปิด Modal แก้ไข permission ของ role นั้น
+  - Modal แสดง permission ของ role × menu ทั้งหมดพร้อม checkbox (ย้าย edit UX เข้า modal แทน inline)
+  - 🧪 test: `npm run build` → pass ✅ | 66 tests passed ✅
+  - 📝 commit: `feat(web): settings roles page redesign to match users table style`
+
 ---
 
 ### Phase 3 — ระบบสินค้า / Item Master
