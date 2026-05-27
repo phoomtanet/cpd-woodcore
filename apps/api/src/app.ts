@@ -9,6 +9,7 @@ import usersRouter from './routes/users'
 import rolePermissionsRouter from './routes/role-permissions'
 import rolesRouter from './routes/roles'
 import masterRouter from './routes/master'
+import stockRouter from './routes/stock'
 
 const app = express()
 
@@ -31,6 +32,7 @@ app.use('/api/users', usersRouter)
 app.use('/api/role-permissions', rolePermissionsRouter)
 app.use('/api/roles', rolesRouter)
 app.use('/api/master', masterRouter)
+app.use('/api/stock', stockRouter)
 
 // Global error handler — must be registered last
 app.use(errorHandler)

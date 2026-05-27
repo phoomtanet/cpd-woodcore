@@ -14,6 +14,9 @@ type MenuStructureEntry =
 
 const MENU_STRUCTURE: MenuStructureEntry[] = [
   { type: 'item', menuKey: 'dashboard', label: 'Dashboard' },
+  { type: 'group', label: 'ข้อมูลหลัก' },
+  { type: 'item', menuKey: 'master-types', label: 'ประเภทสินค้า', indent: true },
+  { type: 'item', menuKey: 'master-units', label: 'หน่วยนับ', indent: true },
   { type: 'item', menuKey: 'products', label: 'สินค้า' },
   { type: 'group', label: 'คลังสินค้า' },
   { type: 'item', menuKey: 'stock-in', label: 'รับสินค้าเข้า', indent: true },
@@ -26,9 +29,6 @@ const MENU_STRUCTURE: MenuStructureEntry[] = [
   { type: 'item', menuKey: 'users', label: 'จัดการผู้ใช้' },
   { type: 'group', label: 'ตั้งค่า' },
   { type: 'item', menuKey: 'settings', label: 'สิทธิ์การใช้งาน', indent: true },
-  { type: 'group', label: 'ข้อมูลหลัก' },
-  { type: 'item', menuKey: 'master-types', label: 'ประเภทสินค้า', indent: true },
-  { type: 'item', menuKey: 'master-units', label: 'หน่วยนับ', indent: true },
 ]
 
 type GroupRow = { _type: 'group'; _key: string; _label: string }
@@ -140,11 +140,7 @@ export default function RolePermissionsTable({ role, data, onUpdate }: Props) {
       onCell: (row) => (row._type === 'group' ? { colSpan: COL_COUNT } : {}),
       render: (_, row) => {
         if (row._type === 'group') {
-          return (
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#8c8c8c', letterSpacing: 1 }}>
-              {row._label}
-            </span>
-          )
+          return <span style={{}}>{row._label}</span>
         }
         return (
           <span style={{ paddingLeft: row._indent ? 20 : 0 }}>
