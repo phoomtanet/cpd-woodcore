@@ -189,6 +189,7 @@ model Product {
   currentStock Int         @default(0)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
   transactions StockTransaction[]
 }
 
@@ -379,6 +380,23 @@ api.interceptors.request.use(cfg => {
 - `modules/[feature]/services/` ห้าม import จาก modules อื่น — ใช้ `services/api.ts` เท่านั้น
 - `shared/` ห้ามมี feature-specific logic — เป็น generic เท่านั้น
 - ห้ามสร้าง Axios instance มากกว่า 1 ตัว — ทุกที่ใช้ `services/api.ts`
+
+### 9. Soft Delete
+Record ที่ผู้ใช้ "ลบ" ต้องใช้ Soft Delete — set `deletedAt DateTime?` แทนการ `DELETE` จริง เพื่อรักษา referential integrity กับ StockTransaction และ audit trail
+
+```prisma
+model Product {
+  ...
+  deletedAt DateTime?  // null = active, non-null = soft-deleted
+}
+```
+
+**กฎ:**
+- Repository: ทุก `findAll` / `findMany` ต้อง filter `where: { deletedAt: null }` เสมอ
+- Repository: `findById` ที่ใช้ทั่วไปต้องกรอง `deletedAt: null` ด้วย — ถ้าเจอ record ที่ถูก soft-delete ให้ถือว่าไม่มี (return `null`)
+- Service: `deleteById` → `update({ deletedAt: new Date() })` ไม่ใช่ `delete()`
+- API: `DELETE /:id` ยังคง return 200 เหมือนเดิม — client ไม่รู้ว่าเป็น soft delete
+- ห้าม hard delete record ที่มี foreign key references (StockTransaction) — ใช้ soft delete เท่านั้น
 
 ---
 
@@ -573,6 +591,10 @@ api.interceptors.request.use(cfg => {
 - [x] 3.1 API: CRUD สินค้า + ค้นหา/filter + แยกประเภท (raw/wip/finished)
   - 🧪 test: 47 tests passed — GET list/filter/search, GET /:id, POST 201/400/403/409, PUT 200/404/409, DELETE 200/403/404 ✅
   - 📝 commit: `feat(api): product CRUD with type and unit`
+
+- [x] 3.1.1 ปรับ DELETE สินค้าเป็น Soft Delete (เพิ่ม field `deletedAt` ใน schema + filter ออกจาก query ปกติ)
+  - 🧪 test: 49 tests passed — DELETE sets deletedAt, GET list filters deletedAt:null, GET/:id returns 404 for soft-deleted ✅
+  - 📝 commit: `feat(api): soft delete products`
 
 - [ ] 3.2 API: Upload รูปภาพสินค้า (multer)
   - 🧪 test: POST with image → ได้ URL รูปกลับมา

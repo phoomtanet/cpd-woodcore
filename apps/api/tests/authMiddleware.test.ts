@@ -23,7 +23,7 @@ jest.mock('@cpd/db', () => ({
       }),
     },
     product: {
-      findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({
         id: 1,
         name: 'ไม้พาเลท',
@@ -39,6 +39,7 @@ jest.mock('@cpd/db', () => ({
         currentStock: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
+        deletedAt: null,
       }),
     },
   },

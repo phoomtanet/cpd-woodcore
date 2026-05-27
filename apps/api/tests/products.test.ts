@@ -13,20 +13,18 @@ jest.mock('@cpd/db', () => ({
     $queryRaw: jest.fn(),
     product: {
       findMany: jest.fn(),
-      findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
     },
   },
 }))
 
 import prisma from '@cpd/db'
 const mockFindMany = prisma.product.findMany as jest.Mock
-const mockFindUnique = prisma.product.findUnique as jest.Mock
+const mockFindFirst = prisma.product.findFirst as jest.Mock
 const mockCreate = prisma.product.create as jest.Mock
 const mockUpdate = prisma.product.update as jest.Mock
-const mockDelete = prisma.product.delete as jest.Mock
 
 const MOCK_PRODUCT = {
   id: 1,
@@ -43,6 +41,7 @@ const MOCK_PRODUCT = {
   currentStock: 0,
   createdAt: new Date(),
   updatedAt: new Date(),
+  deletedAt: null,
 }
 
 const VALID_BODY = {
@@ -78,6 +77,14 @@ describe('GET /api/products', () => {
     expect(res.body.data[0].sku).toBe('PAL-001')
   })
 
+  it('filters out soft-deleted products', async () => {
+    mockFindMany.mockResolvedValue([])
+    await request(app).get('/api/products').set('Authorization', `Bearer ${adminToken}`)
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ deletedAt: null }) })
+    )
+  })
+
   it('passes productType filter to repository', async () => {
     mockFindMany.mockResolvedValue([])
     const res = await request(app)
@@ -105,7 +112,7 @@ describe('GET /api/products', () => {
 
 describe('GET /api/products/:id', () => {
   it('returns 200 with product', async () => {
-    mockFindUnique.mockResolvedValue(MOCK_PRODUCT)
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     const res = await request(app)
       .get('/api/products/1')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -114,12 +121,21 @@ describe('GET /api/products/:id', () => {
   })
 
   it('returns 404 when product not found', async () => {
-    mockFindUnique.mockResolvedValue(null)
+    mockFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .get('/api/products/999')
       .set('Authorization', `Bearer ${adminToken}`)
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Product not found')
+  })
+
+  it('returns 404 for soft-deleted product', async () => {
+    // findFirst with deletedAt: null returns null for a soft-deleted record
+    mockFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .get('/api/products/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(404)
   })
 })
 
@@ -153,7 +169,7 @@ describe('POST /api/products', () => {
   })
 
   it('returns 201 when valid (admin)', async () => {
-    mockFindUnique.mockResolvedValue(null)
+    mockFindFirst.mockResolvedValue(null)
     mockCreate.mockResolvedValue(MOCK_PRODUCT)
     const res = await request(app)
       .post('/api/products')
@@ -164,7 +180,7 @@ describe('POST /api/products', () => {
   })
 
   it('returns 201 when valid (manager)', async () => {
-    mockFindUnique.mockResolvedValue(null)
+    mockFindFirst.mockResolvedValue(null)
     mockCreate.mockResolvedValue(MOCK_PRODUCT)
     const res = await request(app)
       .post('/api/products')
@@ -174,7 +190,7 @@ describe('POST /api/products', () => {
   })
 
   it('returns 409 when SKU already exists', async () => {
-    mockFindUnique.mockResolvedValue(MOCK_PRODUCT)
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     const res = await request(app)
       .post('/api/products')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -188,7 +204,7 @@ describe('POST /api/products', () => {
 
 describe('PUT /api/products/:id', () => {
   it('returns 200 when updated', async () => {
-    mockFindUnique.mockResolvedValue(MOCK_PRODUCT)
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     mockUpdate.mockResolvedValue({ ...MOCK_PRODUCT, name: 'ไม้ใหม่' })
     const res = await request(app)
       .put('/api/products/1')
@@ -199,7 +215,7 @@ describe('PUT /api/products/:id', () => {
   })
 
   it('returns 404 when product not found', async () => {
-    mockFindUnique.mockResolvedValue(null)
+    mockFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .put('/api/products/999')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -208,9 +224,7 @@ describe('PUT /api/products/:id', () => {
   })
 
   it('returns 409 when new SKU conflicts with existing product', async () => {
-    // first findUnique (findById) returns current product
-    // second findUnique (findBySku) returns conflict
-    mockFindUnique
+    mockFindFirst
       .mockResolvedValueOnce(MOCK_PRODUCT)
       .mockResolvedValueOnce({ ...MOCK_PRODUCT, id: 2, sku: 'PAL-002' })
     const res = await request(app)
@@ -232,14 +246,17 @@ describe('PUT /api/products/:id', () => {
 // ─── DELETE /api/products/:id ──────────────────────────────────────────────
 
 describe('DELETE /api/products/:id', () => {
-  it('returns 200 when deleted (admin)', async () => {
-    mockFindUnique.mockResolvedValue(MOCK_PRODUCT)
-    mockDelete.mockResolvedValue(MOCK_PRODUCT)
+  it('returns 200 and soft-deletes (sets deletedAt)', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockUpdate.mockResolvedValue({ ...MOCK_PRODUCT, deletedAt: new Date() })
     const res = await request(app)
       .delete('/api/products/1')
       .set('Authorization', `Bearer ${adminToken}`)
     expect(res.status).toBe(200)
     expect(res.body.data).toBeNull()
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ deletedAt: expect.any(Date) }) })
+    )
   })
 
   it('returns 403 for manager (admin only)', async () => {
@@ -250,7 +267,7 @@ describe('DELETE /api/products/:id', () => {
   })
 
   it('returns 404 when product not found', async () => {
-    mockFindUnique.mockResolvedValue(null)
+    mockFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .delete('/api/products/999')
       .set('Authorization', `Bearer ${adminToken}`)

@@ -10,6 +10,7 @@ export const ProductRepository = {
   findAll({ search, productType }: ProductFilter = {}) {
     return prisma.product.findMany({
       where: {
+        deletedAt: null,
         ...(productType && { productType }),
         ...(search && {
           OR: [
@@ -24,11 +25,11 @@ export const ProductRepository = {
   },
 
   findById(id: number) {
-    return prisma.product.findUnique({ where: { id } })
+    return prisma.product.findFirst({ where: { id, deletedAt: null } })
   },
 
   findBySku(sku: string) {
-    return prisma.product.findUnique({ where: { sku } })
+    return prisma.product.findFirst({ where: { sku, deletedAt: null } })
   },
 
   create(data: Prisma.ProductCreateInput) {
@@ -40,6 +41,6 @@ export const ProductRepository = {
   },
 
   deleteById(id: number) {
-    return prisma.product.delete({ where: { id } })
+    return prisma.product.update({ where: { id }, data: { deletedAt: new Date() } })
   },
 }
