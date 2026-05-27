@@ -26,12 +26,43 @@ router.post(
   StockController.stockIn
 )
 
+const stockAdjustSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int().min(0),
+  reason: z.string().optional(),
+  note: z.string().optional(),
+})
+
+const stockTransferSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+  fromLocation: z.string().min(1),
+  toLocation: z.string().min(1),
+  note: z.string().optional(),
+})
+
 router.post(
   '/out',
   authenticate,
   requireRole('staff', 'manager', 'admin'),
   validate(stockOutSchema),
   StockController.stockOut
+)
+
+router.post(
+  '/adjust',
+  authenticate,
+  requireRole('manager', 'admin'),
+  validate(stockAdjustSchema),
+  StockController.stockAdjust
+)
+
+router.post(
+  '/transfer',
+  authenticate,
+  requireRole('manager', 'admin'),
+  validate(stockTransferSchema),
+  StockController.stockTransfer
 )
 
 export default router

@@ -243,3 +243,178 @@ describe('POST /api/stock/out', () => {
     expect(mockTransaction).toHaveBeenCalledTimes(1)
   })
 })
+
+// ─── POST /api/stock/adjust ───────────────────────────────────────────────
+
+describe('POST /api/stock/adjust', () => {
+  const MOCK_ADJ_TX = { ...MOCK_TX, type: 'adjust', quantity: 20 }
+
+  it('returns 401 when no token', async () => {
+    const res = await request(app).post('/api/stock/adjust').send({ productId: 1, quantity: 20 })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for staff', async () => {
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 20 })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when productId missing', async () => {
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ quantity: 20 })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when quantity is negative', async () => {
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: -1 })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when product not found', async () => {
+    mockFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 999, quantity: 20 })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 201 and sets stock to given quantity', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 20 }, MOCK_ADJ_TX])
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 20 })
+    expect(res.status).toBe(201)
+    expect(res.body.data.type).toBe('adjust')
+    expect(res.body.data.quantity).toBe(20)
+  })
+
+  it('allows adjusting to zero', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockTransaction.mockResolvedValue([
+      { ...MOCK_PRODUCT, currentStock: 0 },
+      { ...MOCK_ADJ_TX, quantity: 0 },
+    ])
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 0 })
+    expect(res.status).toBe(201)
+  })
+
+  it('accepts optional reason and note', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockTransaction.mockResolvedValue([
+      { ...MOCK_PRODUCT, currentStock: 20 },
+      { ...MOCK_ADJ_TX, reason: 'นับสต๊อกจริง', note: 'ตรวจนับประจำปี' },
+    ])
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ productId: 1, quantity: 20, reason: 'นับสต๊อกจริง', note: 'ตรวจนับประจำปี' })
+    expect(res.status).toBe(201)
+    expect(res.body.data.reason).toBe('นับสต๊อกจริง')
+  })
+})
+
+// ─── POST /api/stock/transfer ─────────────────────────────────────────────
+
+describe('POST /api/stock/transfer', () => {
+  const MOCK_TRANSFER_TX = {
+    ...MOCK_TX,
+    type: 'transfer',
+    quantity: 5,
+    fromLocation: 'คลัง A',
+    toLocation: 'คลัง B',
+  }
+
+  it('returns 401 when no token', async () => {
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for staff', async () => {
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when fromLocation missing', async () => {
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 5, toLocation: 'คลัง B' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when toLocation missing', async () => {
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when quantity is zero', async () => {
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 0, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when product not found', async () => {
+    mockFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 999, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 400 when transfer quantity exceeds stock', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 3 })
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 201 and records transfer for manager', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockTransaction.mockResolvedValue([MOCK_TRANSFER_TX])
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(201)
+    expect(res.body.data.type).toBe('transfer')
+    expect(res.body.data.fromLocation).toBe('คลัง A')
+    expect(res.body.data.toLocation).toBe('คลัง B')
+  })
+
+  it('returns 201 for admin', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockTransaction.mockResolvedValue([MOCK_TRANSFER_TX])
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(201)
+  })
+})

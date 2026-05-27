@@ -39,6 +39,41 @@ export const StockRepository = {
     ])
   },
 
+  async stockAdjust(
+    productId: number,
+    newQuantity: number,
+    userId: number,
+    reason?: string,
+    note?: string
+  ) {
+    return prisma.$transaction([
+      prisma.product.update({
+        where: { id: productId },
+        data: { currentStock: newQuantity },
+      }),
+      prisma.stockTransaction.create({
+        data: { productId, type: 'adjust', quantity: newQuantity, reason, note, userId },
+        include: { product: true },
+      }),
+    ])
+  },
+
+  async stockTransfer(
+    productId: number,
+    quantity: number,
+    fromLocation: string,
+    toLocation: string,
+    userId: number,
+    note?: string
+  ) {
+    return prisma.$transaction([
+      prisma.stockTransaction.create({
+        data: { productId, type: 'transfer', quantity, fromLocation, toLocation, note, userId },
+        include: { product: true },
+      }),
+    ])
+  },
+
   findTransactionsByProduct(productId: number) {
     return prisma.stockTransaction.findMany({
       where: { productId },
