@@ -51,6 +51,24 @@ export const StockController = {
     }
   },
 
+  async stockHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { type, productId, from, to } = req.query
+      const transactions = await StockService.getHistory({
+        type:
+          typeof type === 'string'
+            ? (type as Parameters<typeof StockService.getHistory>[0]['type'])
+            : undefined,
+        productId: typeof productId === 'string' ? Number(productId) : undefined,
+        from: typeof from === 'string' ? from : undefined,
+        to: typeof to === 'string' ? to : undefined,
+      })
+      res.json({ data: transactions, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
   async stockCard(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await StockService.getStockCard(Number(req.params.productId))

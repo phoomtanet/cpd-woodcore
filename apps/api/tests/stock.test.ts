@@ -523,3 +523,112 @@ describe('GET /api/stock/card/:productId', () => {
     }
   })
 })
+
+// ─── GET /api/stock/history ───────────────────────────────────────────────
+
+describe('GET /api/stock/history', () => {
+  const createdAt = new Date('2025-06-01T00:00:00Z')
+  const makeTx = (id: number, type: string) => ({
+    id,
+    productId: 1,
+    type,
+    quantity: 10,
+    fromLocation: null,
+    toLocation: null,
+    reason: null,
+    note: null,
+    userId: 1,
+    createdAt,
+    product: MOCK_PRODUCT,
+    createdBy: { id: 1, name: 'admin' },
+  })
+
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/stock/history')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 200 with all transactions when no filter', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'in'), makeTx(2, 'out')])
+    const res = await request(app)
+      .get('/api/stock/history')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(2)
+  })
+
+  it('filters by type=in', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'in')])
+    const res = await request(app)
+      .get('/api/stock/history?type=in')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+    expect(res.body.data[0].type).toBe('in')
+  })
+
+  it('returns 400 for invalid type', async () => {
+    const res = await request(app)
+      .get('/api/stock/history?type=invalid')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+
+  it('filters by from date', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'in')])
+    const res = await request(app)
+      .get('/api/stock/history?from=2025-01-01T00:00:00Z')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+  })
+
+  it('filters by to date', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'out')])
+    const res = await request(app)
+      .get('/api/stock/history?to=2025-12-31T23:59:59Z')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('filters by from and to combined', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'in'), makeTx(2, 'out')])
+    const res = await request(app)
+      .get('/api/stock/history?from=2025-01-01T00:00:00Z&to=2025-12-31T23:59:59Z')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(2)
+  })
+
+  it('filters by productId', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'in')])
+    const res = await request(app)
+      .get('/api/stock/history?productId=1')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('returns 400 for non-integer productId', async () => {
+    const res = await request(app)
+      .get('/api/stock/history?productId=abc')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 for invalid date format', async () => {
+    const res = await request(app)
+      .get('/api/stock/history?from=not-a-date')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+
+  it('allows all roles: staff, manager, admin', async () => {
+    mockFindMany.mockResolvedValue([])
+    for (const token of [staffToken, managerToken, adminToken]) {
+      const res = await request(app)
+        .get('/api/stock/history')
+        .set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(200)
+    }
+  })
+})

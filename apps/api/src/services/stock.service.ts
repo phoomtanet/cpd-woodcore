@@ -1,6 +1,7 @@
 import { StockRepository } from '../repositories/stock.repository'
 import { ProductRepository } from '../repositories/product.repository'
 import { NotFoundError, BadRequestError } from '../utils/errors'
+import type { TxType } from '@prisma/client'
 
 export const StockService = {
   async stockIn(productId: number, quantity: number, userId: number, note?: string) {
@@ -63,6 +64,15 @@ export const StockService = {
       note
     )
     return transaction
+  },
+
+  async getHistory(params: { type?: TxType; productId?: number; from?: string; to?: string }) {
+    return StockRepository.findHistory({
+      type: params.type,
+      productId: params.productId,
+      from: params.from ? new Date(params.from) : undefined,
+      to: params.to ? new Date(params.to) : undefined,
+    })
   },
 
   async getStockCard(productId: number) {

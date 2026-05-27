@@ -1,10 +1,29 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import type { Request, Response, NextFunction } from 'express'
 import { authenticate, requireRole } from '../middleware/auth'
 import validate from '../middleware/validate'
 import { StockController } from '../controllers/stock.controller'
 
 const router = Router()
+
+function validateQuery(schema: z.ZodSchema) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    try {
+      schema.parse(req.query)
+      next()
+    } catch (err) {
+      next(err)
+    }
+  }
+}
+
+const historyQuerySchema = z.object({
+  type: z.enum(['in', 'out', 'adjust', 'transfer']).optional(),
+  productId: z.string().regex(/^\d+$/, 'productId must be a positive integer').optional(),
+  from: z.string().datetime({ offset: true }).optional(),
+  to: z.string().datetime({ offset: true }).optional(),
+})
 
 const stockInSchema = z.object({
   productId: z.number().int().positive(),
@@ -49,6 +68,12 @@ router.post(
   StockController.stockOut
 )
 
+router.get(
+  '/history',
+  authenticate,
+  validateQuery(historyQuerySchema),
+  StockController.stockHistory
+)
 router.get('/card/:productId', authenticate, StockController.stockCard)
 
 router.post(

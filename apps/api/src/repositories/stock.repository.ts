@@ -81,4 +81,31 @@ export const StockRepository = {
       orderBy: { createdAt: 'asc' },
     })
   },
+
+  findHistory({
+    type,
+    productId,
+    from,
+    to,
+  }: {
+    type?: TxType
+    productId?: number
+    from?: Date
+    to?: Date
+  }) {
+    return prisma.stockTransaction.findMany({
+      where: {
+        ...(type && { type }),
+        ...(productId && { productId }),
+        ...((from || to) && {
+          createdAt: {
+            ...(from && { gte: from }),
+            ...(to && { lte: to }),
+          },
+        }),
+      },
+      include: { product: true, createdBy: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+  },
 }
