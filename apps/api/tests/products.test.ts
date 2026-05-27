@@ -106,11 +106,38 @@ describe('GET /api/products', () => {
       expect.objectContaining({ where: expect.objectContaining({ OR: expect.any(Array) }) })
     )
   })
+
+  it('returns 200 with product list (admin)', async () => {
+    mockFindMany.mockResolvedValue([MOCK_PRODUCT])
+    const res = await request(app).get('/api/products').set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+  })
+
+  it('passes combined search + productType filter', async () => {
+    mockFindMany.mockResolvedValue([])
+    await request(app)
+      .get('/api/products?search=ไม้&productType=raw')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          productType: 'raw',
+          OR: expect.any(Array),
+        }),
+      })
+    )
+  })
 })
 
 // ─── GET /api/products/:id ─────────────────────────────────────────────────
 
 describe('GET /api/products/:id', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/products/1')
+    expect(res.status).toBe(401)
+  })
+
   it('returns 200 with product', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     const res = await request(app)
@@ -142,6 +169,11 @@ describe('GET /api/products/:id', () => {
 // ─── POST /api/products ────────────────────────────────────────────────────
 
 describe('POST /api/products', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).post('/api/products').send(VALID_BODY)
+    expect(res.status).toBe(401)
+  })
+
   it('returns 403 for staff', async () => {
     const res = await request(app)
       .post('/api/products')
@@ -189,6 +221,24 @@ describe('POST /api/products', () => {
     expect(res.status).toBe(201)
   })
 
+  it('returns 400 when productType is invalid', async () => {
+    const res = await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ...VALID_BODY, productType: 'invalid' })
+    expect(res.status).toBe(400)
+    expect(Array.isArray(res.body.error)).toBe(true)
+    expect(res.body.error.find((e: { field: string }) => e.field === 'productType')).toBeDefined()
+  })
+
+  it('returns 400 when costPrice is negative', async () => {
+    const res = await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ...VALID_BODY, costPrice: -1 })
+    expect(res.status).toBe(400)
+  })
+
   it('returns 409 when SKU already exists', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     const res = await request(app)
@@ -203,6 +253,11 @@ describe('POST /api/products', () => {
 // ─── PUT /api/products/:id ─────────────────────────────────────────────────
 
 describe('PUT /api/products/:id', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).put('/api/products/1').send({ name: 'ไม้ใหม่' })
+    expect(res.status).toBe(401)
+  })
+
   it('returns 200 when updated', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     mockUpdate.mockResolvedValue({ ...MOCK_PRODUCT, name: 'ไม้ใหม่' })
@@ -315,6 +370,11 @@ describe('POST /api/products/:id/image', () => {
 // ─── DELETE /api/products/:id ──────────────────────────────────────────────
 
 describe('DELETE /api/products/:id', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).delete('/api/products/1')
+    expect(res.status).toBe(401)
+  })
+
   it('returns 200 and soft-deletes (sets deletedAt)', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     mockUpdate.mockResolvedValue({ ...MOCK_PRODUCT, deletedAt: new Date() })
