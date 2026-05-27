@@ -51,6 +51,15 @@ export const StockController = {
     }
   },
 
+  async stockCard(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await StockService.getStockCard(Number(req.params.productId))
+      res.json({ data: result, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
   async stockTransfer(req: Request, res: Response, next: NextFunction) {
     try {
       const { productId, quantity, fromLocation, toLocation, note } = req.body as {

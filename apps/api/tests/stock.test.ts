@@ -18,6 +18,7 @@ jest.mock('@cpd/db', () => ({
     },
     stockTransaction: {
       create: jest.fn(),
+      findMany: jest.fn(),
     },
   },
 }))
@@ -25,6 +26,7 @@ jest.mock('@cpd/db', () => ({
 import prisma from '@cpd/db'
 const mockFindFirst = prisma.product.findFirst as jest.Mock
 const mockTransaction = prisma.$transaction as jest.Mock
+const mockFindMany = prisma.stockTransaction.findMany as jest.Mock
 
 const MOCK_PRODUCT = {
   id: 1,
@@ -416,5 +418,108 @@ describe('POST /api/stock/transfer', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
     expect(res.status).toBe(201)
+  })
+})
+
+// ─── GET /api/stock/card/:productId ───────────────────────────────────────
+
+describe('GET /api/stock/card/:productId', () => {
+  const createdAt = new Date('2025-01-01T00:00:00Z')
+
+  const makeTx = (id: number, type: string, quantity: number) => ({
+    id,
+    productId: 1,
+    type,
+    quantity,
+    fromLocation: null,
+    toLocation: null,
+    reason: null,
+    note: null,
+    userId: 1,
+    createdAt,
+    product: MOCK_PRODUCT,
+    createdBy: { id: 1, name: 'admin' },
+  })
+
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/stock/card/1')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 404 when product not found', async () => {
+    mockFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .get('/api/stock/card/999')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(404)
+  })
+
+  it('returns empty transactions when no history', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([])
+    const res = await request(app)
+      .get('/api/stock/card/1')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data.transactions).toHaveLength(0)
+    expect(res.body.data.product.id).toBe(1)
+  })
+
+  it('computes running balance: in → out → in', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([makeTx(1, 'in', 10), makeTx(2, 'out', 3), makeTx(3, 'in', 5)])
+    const res = await request(app)
+      .get('/api/stock/card/1')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    const txs = res.body.data.transactions
+    expect(txs[0].balance).toBe(10) // 0 + 10
+    expect(txs[1].balance).toBe(7) // 10 - 3
+    expect(txs[2].balance).toBe(12) // 7 + 5
+  })
+
+  it('adjust resets balance to absolute quantity', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([
+      makeTx(1, 'in', 10),
+      makeTx(2, 'adjust', 20),
+      makeTx(3, 'out', 5),
+    ])
+    const res = await request(app)
+      .get('/api/stock/card/1')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    const txs = res.body.data.transactions
+    expect(txs[0].balance).toBe(10) // 0 + 10
+    expect(txs[1].balance).toBe(20) // reset to 20
+    expect(txs[2].balance).toBe(15) // 20 - 5
+  })
+
+  it('transfer does not change balance', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([
+      makeTx(1, 'in', 10),
+      makeTx(2, 'transfer', 4),
+      makeTx(3, 'out', 2),
+    ])
+    const res = await request(app)
+      .get('/api/stock/card/1')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    const txs = res.body.data.transactions
+    expect(txs[0].balance).toBe(10) // in
+    expect(txs[1].balance).toBe(10) // transfer — balance unchanged
+    expect(txs[2].balance).toBe(8) // 10 - 2
+  })
+
+  it('allows all roles: staff, manager, admin', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([])
+    for (const token of [staffToken, managerToken, adminToken]) {
+      const res = await request(app)
+        .get('/api/stock/card/1')
+        .set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(200)
+    }
   })
 })

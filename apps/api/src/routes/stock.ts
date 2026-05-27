@@ -49,6 +49,8 @@ router.post(
   StockController.stockOut
 )
 
+router.get('/card/:productId', authenticate, StockController.stockCard)
+
 router.post(
   '/adjust',
   authenticate,

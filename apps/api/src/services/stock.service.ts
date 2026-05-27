@@ -64,4 +64,22 @@ export const StockService = {
     )
     return transaction
   },
+
+  async getStockCard(productId: number) {
+    const product = await ProductRepository.findById(productId)
+    if (!product) throw new NotFoundError('Product not found')
+
+    const transactions = await StockRepository.findTransactionsByProduct(productId)
+
+    let balance = 0
+    const rows = transactions.map((tx) => {
+      if (tx.type === 'in') balance += tx.quantity
+      else if (tx.type === 'out') balance -= tx.quantity
+      else if (tx.type === 'adjust') balance = tx.quantity
+      // transfer: balance unchanged
+      return { ...tx, balance }
+    })
+
+    return { product, transactions: rows }
+  },
 }
