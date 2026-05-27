@@ -1,7 +1,9 @@
 import { Router } from 'express'
+import type { Request, Response, NextFunction } from 'express'
 import { z } from 'zod'
 import validate from '../middleware/validate'
 import { authenticate, requireRole } from '../middleware/auth'
+import { uploadProductImage } from '../middleware/upload'
 import { ProductController } from '../controllers/product.controller'
 
 const router = Router()
@@ -37,5 +39,23 @@ router.put(
   ProductController.update
 )
 router.delete('/:id', authenticate, requireRole('admin'), ProductController.remove)
+
+router.post(
+  '/:id/image',
+  authenticate,
+  requireRole('manager', 'admin'),
+  (req: Request, res: Response, next: NextFunction) =>
+    uploadProductImage(req, res, (err) => {
+      if (err instanceof Error) {
+        if (err.message === 'Only image files are allowed')
+          return res.status(400).json({ error: err.message })
+        if ((err as NodeJS.ErrnoException).code === 'LIMIT_FILE_SIZE')
+          return res.status(400).json({ error: 'File too large (max 5MB)' })
+        return next(err)
+      }
+      next()
+    }),
+  ProductController.uploadImage
+)
 
 export default router

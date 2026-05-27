@@ -243,6 +243,75 @@ describe('PUT /api/products/:id', () => {
   })
 })
 
+// ─── POST /api/products/:id/image ─────────────────────────────────────────
+
+describe('POST /api/products/:id/image', () => {
+  const FAKE_JPEG = Buffer.from(
+    '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoH' +
+      'BwYIDAoMCwsKCwsNCxAQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAAR' +
+      'CAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAA' +
+      'AAAAAAAAAAAAAAP/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAA' +
+      'AAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=',
+    'base64'
+  )
+
+  it('returns 401 when no token', async () => {
+    const res = await request(app)
+      .post('/api/products/1/image')
+      .attach('image', FAKE_JPEG, 'test.jpg')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for staff', async () => {
+    const res = await request(app)
+      .post('/api/products/1/image')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .attach('image', FAKE_JPEG, 'test.jpg')
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when no file attached', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    const res = await request(app)
+      .post('/api/products/1/image')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBe('No image file provided')
+  })
+
+  it('returns 400 when file is not an image', async () => {
+    const res = await request(app)
+      .post('/api/products/1/image')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .attach('image', Buffer.from('not an image'), {
+        filename: 'file.txt',
+        contentType: 'text/plain',
+      })
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBe('Only image files are allowed')
+  })
+
+  it('returns 404 when product not found', async () => {
+    mockFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .post('/api/products/999/image')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .attach('image', FAKE_JPEG, { filename: 'test.jpg', contentType: 'image/jpeg' })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 200 and image URL when upload succeeds', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockUpdate.mockResolvedValue({ ...MOCK_PRODUCT, image: '/uploads/products/test.jpg' })
+    const res = await request(app)
+      .post('/api/products/1/image')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .attach('image', FAKE_JPEG, { filename: 'test.jpg', contentType: 'image/jpeg' })
+    expect(res.status).toBe(200)
+    expect(res.body.data.image).toMatch(/^\/uploads\/products\//)
+  })
+})
+
 // ─── DELETE /api/products/:id ──────────────────────────────────────────────
 
 describe('DELETE /api/products/:id', () => {

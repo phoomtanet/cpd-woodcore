@@ -43,6 +43,12 @@ export const ProductService = {
     return ProductRepository.update(id, dto as Prisma.ProductUpdateInput)
   },
 
+  async updateImage(id: number, imageUrl: string) {
+    const product = await ProductRepository.findById(id)
+    if (!product) throw new NotFoundError('Product not found')
+    return ProductRepository.update(id, { image: imageUrl })
+  },
+
   async deleteById(id: number) {
     const product = await ProductRepository.findById(id)
     if (!product) throw new NotFoundError('Product not found')

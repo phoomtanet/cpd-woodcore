@@ -7,6 +7,10 @@ dist/
 coverage/
 .prisma/
 
+# Uploaded files (keep directory structure via .gitkeep)
+apps/api/uploads/products/*
+!apps/api/uploads/products/.gitkeep
+
 # Project docs (not for version control)
 CLAUDE.md
 CLAUDE_TEMPLATE.md

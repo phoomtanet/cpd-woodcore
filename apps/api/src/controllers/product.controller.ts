@@ -43,6 +43,20 @@ export const ProductController = {
     }
   },
 
+  async uploadImage(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.file) {
+        res.status(400).json({ error: 'No image file provided' })
+        return
+      }
+      const imageUrl = `/uploads/products/${req.file.filename}`
+      const product = await ProductService.updateImage(Number(req.params.id), imageUrl)
+      res.json({ data: product, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
   async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       await ProductService.deleteById(Number(req.params.id))
