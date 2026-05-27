@@ -18,6 +18,10 @@ const createProductSchema = z.object({
   minStock: z.number().int().nonnegative().default(0),
 })
 
+const updateProductSchema = createProductSchema.partial()
+
+router.get('/', authenticate, requireRole('manager', 'admin'), ProductController.list)
+router.get('/:id', authenticate, requireRole('manager', 'admin'), ProductController.show)
 router.post(
   '/',
   authenticate,
@@ -25,5 +29,13 @@ router.post(
   validate(createProductSchema),
   ProductController.create
 )
+router.put(
+  '/:id',
+  authenticate,
+  requireRole('manager', 'admin'),
+  validate(updateProductSchema),
+  ProductController.update
+)
+router.delete('/:id', authenticate, requireRole('admin'), ProductController.remove)
 
 export default router

@@ -570,8 +570,8 @@ api.interceptors.request.use(cfg => {
 
 ### Phase 3 — ระบบสินค้า / Item Master
 
-- [ ] 3.1 API: CRUD สินค้า + ค้นหา/filter + แยกประเภท (raw/wip/finished)
-  - 🧪 test: POST/GET/PUT/DELETE `/api/products` → ทำงานถูกต้อง, filter productType ได้
+- [x] 3.1 API: CRUD สินค้า + ค้นหา/filter + แยกประเภท (raw/wip/finished)
+  - 🧪 test: 47 tests passed — GET list/filter/search, GET /:id, POST 201/400/403/409, PUT 200/404/409, DELETE 200/403/404 ✅
   - 📝 commit: `feat(api): product CRUD with type and unit`
 
 - [ ] 3.2 API: Upload รูปภาพสินค้า (multer)

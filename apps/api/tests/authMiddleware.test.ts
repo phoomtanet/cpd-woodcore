@@ -22,6 +22,25 @@ jest.mock('@cpd/db', () => ({
         createdAt: new Date(),
       }),
     },
+    product: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({
+        id: 1,
+        name: 'ไม้พาเลท',
+        sku: 'PAL-TEST-001',
+        barcode: null,
+        image: null,
+        category: null,
+        productType: 'raw',
+        unit: 'แผ่น',
+        costPrice: '50.00',
+        salePrice: '80.00',
+        minStock: 0,
+        currentStock: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    },
   },
 }))
 
