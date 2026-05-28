@@ -25,6 +25,12 @@ const historyQuerySchema = z.object({
   to: z.string().datetime({ offset: true }).optional(),
 })
 
+const stockCardQuerySchema = z.object({
+  from: z.string().datetime({ offset: true }).optional(),
+  to: z.string().datetime({ offset: true }).optional(),
+  order: z.enum(['asc', 'desc']).optional(),
+})
+
 const stockInSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().positive(),
@@ -74,7 +80,12 @@ router.get(
   validateQuery(historyQuerySchema),
   StockController.stockHistory
 )
-router.get('/card/:productId', authenticate, StockController.stockCard)
+router.get(
+  '/card/:productId',
+  authenticate,
+  validateQuery(stockCardQuerySchema),
+  StockController.stockCard
+)
 router.get('/low-alert', authenticate, StockController.stockLowAlert)
 
 router.post(

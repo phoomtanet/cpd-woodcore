@@ -71,7 +71,13 @@ export const StockController = {
 
   async stockCard(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await StockService.getStockCard(Number(req.params.productId))
+      const { from, to, order } = req.query
+      const result = await StockService.getStockCard(
+        Number(req.params.productId),
+        typeof from === 'string' ? from : undefined,
+        typeof to === 'string' ? to : undefined,
+        order === 'asc' ? 'asc' : 'desc'
+      )
       res.json({ data: result, message: 'ok' })
     } catch (err) {
       next(err)

@@ -551,7 +551,7 @@ describe('GET /api/stock/card/:productId', () => {
     expect(res.body.data.product.id).toBe(1)
   })
 
-  it('computes running balance: in → out → in', async () => {
+  it('computes running balance: in → out → in (returned newest-first)', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     mockFindMany.mockResolvedValue([makeTx(1, 'in', 10), makeTx(2, 'out', 3), makeTx(3, 'in', 5)])
     const res = await request(app)
@@ -559,12 +559,12 @@ describe('GET /api/stock/card/:productId', () => {
       .set('Authorization', `Bearer ${staffToken}`)
     expect(res.status).toBe(200)
     const txs = res.body.data.transactions
-    expect(txs[0].balance).toBe(10) // 0 + 10
+    expect(txs[0].balance).toBe(12) // newest: 7 + 5
     expect(txs[1].balance).toBe(7) // 10 - 3
-    expect(txs[2].balance).toBe(12) // 7 + 5
+    expect(txs[2].balance).toBe(10) // oldest: 0 + 10
   })
 
-  it('adjust resets balance to absolute quantity', async () => {
+  it('adjust resets balance to absolute quantity (returned newest-first)', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     mockFindMany.mockResolvedValue([
       makeTx(1, 'in', 10),
@@ -576,12 +576,12 @@ describe('GET /api/stock/card/:productId', () => {
       .set('Authorization', `Bearer ${staffToken}`)
     expect(res.status).toBe(200)
     const txs = res.body.data.transactions
-    expect(txs[0].balance).toBe(10) // 0 + 10
+    expect(txs[0].balance).toBe(15) // newest: 20 - 5
     expect(txs[1].balance).toBe(20) // reset to 20
-    expect(txs[2].balance).toBe(15) // 20 - 5
+    expect(txs[2].balance).toBe(10) // oldest: 0 + 10
   })
 
-  it('transfer does not change balance', async () => {
+  it('transfer does not change balance (returned newest-first)', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
     mockFindMany.mockResolvedValue([
       makeTx(1, 'in', 10),
@@ -593,9 +593,9 @@ describe('GET /api/stock/card/:productId', () => {
       .set('Authorization', `Bearer ${staffToken}`)
     expect(res.status).toBe(200)
     const txs = res.body.data.transactions
-    expect(txs[0].balance).toBe(10) // in
+    expect(txs[0].balance).toBe(8) // newest: out -2
     expect(txs[1].balance).toBe(10) // transfer — balance unchanged
-    expect(txs[2].balance).toBe(8) // 10 - 2
+    expect(txs[2].balance).toBe(10) // oldest: in
   })
 
   it('allows all roles: staff, manager, admin', async () => {

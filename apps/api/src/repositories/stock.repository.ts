@@ -74,9 +74,17 @@ export const StockRepository = {
     ])
   },
 
-  findTransactionsByProduct(productId: number) {
+  findTransactionsByProduct(productId: number, from?: Date, to?: Date) {
     return prisma.stockTransaction.findMany({
-      where: { productId },
+      where: {
+        productId,
+        ...((from || to) && {
+          createdAt: {
+            ...(from && { gte: from }),
+            ...(to && { lte: to }),
+          },
+        }),
+      },
       include: { product: true, createdBy: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'asc' },
     })

@@ -79,11 +79,20 @@ export const StockService = {
     return StockRepository.findLowStock()
   },
 
-  async getStockCard(productId: number) {
+  async getStockCard(
+    productId: number,
+    from?: string,
+    to?: string,
+    order: 'asc' | 'desc' = 'desc'
+  ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
 
-    const transactions = await StockRepository.findTransactionsByProduct(productId)
+    const transactions = await StockRepository.findTransactionsByProduct(
+      productId,
+      from ? new Date(from) : undefined,
+      to ? new Date(to) : undefined
+    )
 
     let balance = 0
     const rows = transactions.map((tx) => {
@@ -94,6 +103,6 @@ export const StockService = {
       return { ...tx, balance }
     })
 
-    return { product, transactions: rows }
+    return { product, transactions: order === 'desc' ? rows.reverse() : rows }
   },
 }
