@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { App, Button, Form, Input, Modal, Popconfirm, Space, Switch, Table, Tag } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import PageHeader from '@/shared/components/PageHeader'
-import RoleGuard from '@/shared/guards/RoleGuard'
+import PermissionGuard from '@/shared/guards/PermissionGuard'
 import { useMasterStore } from '@/store/masterStore'
 import { masterApi } from '../services/masterApi'
 import { usePermissionStore } from '@/store/permissionStore'
@@ -261,7 +261,6 @@ function UnitsContent() {
     {
       title: 'สถานะ',
       key: 'isActive',
-      width: 110,
       render: (_: unknown, r: UnitItem) =>
         r.isActive ? <Tag color="success">ใช้งาน</Tag> : <Tag color="default">ไม่ใช้งาน</Tag>,
     },
@@ -270,7 +269,6 @@ function UnitsContent() {
           {
             title: '',
             key: 'actions',
-            width: 100,
             render: (_: unknown, r: UnitItem) => (
               <Space>
                 {canUpdate && (
@@ -337,9 +335,10 @@ function UnitsContent() {
 // ─── Page wrapper ─────────────────────────────────────────────────────────────
 
 export default function MasterDataPage({ mode }: Props) {
+  const menuKey = mode === 'types' ? 'master-types' : 'master-units'
   return (
-    <RoleGuard roles={['admin', 'manager']}>
+    <PermissionGuard menuKey={menuKey}>
       <App>{mode === 'types' ? <ProductTypesContent /> : <UnitsContent />}</App>
-    </RoleGuard>
+    </PermissionGuard>
   )
 }

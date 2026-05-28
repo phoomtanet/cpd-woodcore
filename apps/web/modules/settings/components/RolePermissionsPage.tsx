@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Table, Tag, Button, App, Spin, Alert } from 'antd'
 import { EditOutlined, SettingOutlined } from '@ant-design/icons'
 import PageHeader from '@/shared/components/PageHeader'
-import RoleGuard from '@/shared/guards/RoleGuard'
+import PermissionGuard from '@/shared/guards/PermissionGuard'
 import RoleEditModal from './RoleEditModal'
 import { useRolePermissions } from '../hooks/useRolePermissions'
 import { useRolesStore } from '@/store/rolesStore'
@@ -43,7 +43,7 @@ export default function RolePermissionsPage() {
   ]
 
   return (
-    <RoleGuard roles={['admin']}>
+    <PermissionGuard menuKey="settings">
       <App>
         <PageHeader
           title="ตั้งค่าสิทธิ์การใช้งาน"
@@ -77,6 +77,6 @@ export default function RolePermissionsPage() {
           />
         )}
       </App>
-    </RoleGuard>
+    </PermissionGuard>
   )
 }

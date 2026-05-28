@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Input, Select, Button, Alert, App, Space } from 'antd'
 import { PlusOutlined, AppstoreOutlined } from '@ant-design/icons'
 import PageHeader from '@/shared/components/PageHeader'
-import RoleGuard from '@/shared/guards/RoleGuard'
+import PermissionGuard from '@/shared/guards/PermissionGuard'
 import ProductTable from './ProductTable'
 import ProductFormModal from './ProductFormModal'
 import { useProducts } from '../hooks/useProducts'
@@ -60,7 +60,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <RoleGuard roles={['manager', 'admin']}>
+    <PermissionGuard menuKey="products">
       <App>
         <PageHeader
           title="รายการสินค้า"
@@ -112,6 +112,6 @@ export default function ProductsPage() {
           onImageUploaded={handleImageUploaded}
         />
       </App>
-    </RoleGuard>
+    </PermissionGuard>
   )
 }

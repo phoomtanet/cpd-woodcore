@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button, Alert, App } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import PageHeader from '@/shared/components/PageHeader'
-import RoleGuard from '@/shared/guards/RoleGuard'
+import PermissionGuard from '@/shared/guards/PermissionGuard'
 import UserTable from './UserTable'
 import UserFormModal from './UserFormModal'
 import { useUsers } from '../hooks/useUsers'
@@ -31,7 +31,7 @@ export default function UsersPage() {
   }
 
   return (
-    <RoleGuard roles={['admin']}>
+    <PermissionGuard menuKey="users">
       <App>
         <PageHeader
           title="จัดการผู้ใช้"
@@ -55,6 +55,6 @@ export default function UsersPage() {
           onUpdate={updateUser}
         />
       </App>
-    </RoleGuard>
+    </PermissionGuard>
   )
 }
