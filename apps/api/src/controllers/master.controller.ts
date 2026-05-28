@@ -15,7 +15,7 @@ export const MasterController = {
 
   async createProductType(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const item = await MasterService.createProductType(req.body)
+      const item = await MasterService.createProductType(req.body, req.user!.userId)
       res.status(201).json({ data: item, message: 'ok' })
     } catch (err) {
       next(err)
@@ -24,7 +24,11 @@ export const MasterController = {
 
   async updateProductType(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const item = await MasterService.updateProductType(Number(req.params.id), req.body)
+      const item = await MasterService.updateProductType(
+        Number(req.params.id),
+        req.body,
+        req.user!.userId
+      )
       res.json({ data: item, message: 'ok' })
     } catch (err) {
       next(err)
@@ -35,7 +39,8 @@ export const MasterController = {
     try {
       const item = await MasterService.toggleProductTypeStatus(
         Number(req.params.id),
-        req.body.isActive
+        req.body.isActive,
+        req.user!.userId
       )
       res.json({ data: item, message: 'ok' })
     } catch (err) {
@@ -65,7 +70,7 @@ export const MasterController = {
 
   async createUnit(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const item = await MasterService.createUnit(req.body)
+      const item = await MasterService.createUnit(req.body, req.user!.userId)
       res.status(201).json({ data: item, message: 'ok' })
     } catch (err) {
       next(err)
@@ -74,7 +79,7 @@ export const MasterController = {
 
   async updateUnit(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const item = await MasterService.updateUnit(Number(req.params.id), req.body)
+      const item = await MasterService.updateUnit(Number(req.params.id), req.body, req.user!.userId)
       res.json({ data: item, message: 'ok' })
     } catch (err) {
       next(err)
@@ -83,7 +88,11 @@ export const MasterController = {
 
   async updateUnitStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const item = await MasterService.toggleUnitStatus(Number(req.params.id), req.body.isActive)
+      const item = await MasterService.toggleUnitStatus(
+        Number(req.params.id),
+        req.body.isActive,
+        req.user!.userId
+      )
       res.json({ data: item, message: 'ok' })
     } catch (err) {
       next(err)
@@ -112,7 +121,7 @@ export const MasterController = {
 
   async createCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const item = await MasterService.createCategory(req.body)
+      const item = await MasterService.createCategory(req.body, req.user!.userId)
       res.status(201).json({ data: item, message: 'ok' })
     } catch (err) {
       next(err)
@@ -121,7 +130,11 @@ export const MasterController = {
 
   async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const item = await MasterService.updateCategory(Number(req.params.id), req.body)
+      const item = await MasterService.updateCategory(
+        Number(req.params.id),
+        req.body,
+        req.user!.userId
+      )
       res.json({ data: item, message: 'ok' })
     } catch (err) {
       next(err)
@@ -132,7 +145,8 @@ export const MasterController = {
     try {
       const item = await MasterService.toggleCategoryStatus(
         Number(req.params.id),
-        req.body.isActive
+        req.body.isActive,
+        req.user!.userId
       )
       res.json({ data: item, message: 'ok' })
     } catch (err) {

@@ -35,13 +35,27 @@ model User {
   createdAt    DateTime           @default(now())
   deletedAt    DateTime?
   transactions StockTransaction[]
+
+  categoryCreated    Category[]        @relation("CategoryCreatedBy")
+  categoryUpdated    Category[]        @relation("CategoryUpdatedBy")
+  productTypeCreated ProductTypeItem[] @relation("ProductTypeCreatedBy")
+  productTypeUpdated ProductTypeItem[] @relation("ProductTypeUpdatedBy")
+  unitCreated        Unit[]            @relation("UnitCreatedBy")
+  unitUpdated        Unit[]            @relation("UnitUpdatedBy")
 }
 
 model Category {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique
-  isActive Boolean   @default(true)
-  products Product[]
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById Int?
+  updatedById Int?
+  createdBy   User?     @relation("CategoryCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?     @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
+  products    Product[]
 }
 
 model Product {
@@ -80,16 +94,30 @@ model RolePermission {
 }
 
 model ProductTypeItem {
-  id       Int     @id @default(autoincrement())
-  name     String  @unique
-  label    String
-  isActive Boolean @default(true)
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  label       String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById Int?
+  updatedById Int?
+  createdBy   User?     @relation("ProductTypeCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?     @relation("ProductTypeUpdatedBy", fields: [updatedById], references: [id])
 }
 
 model Unit {
-  id       Int     @id @default(autoincrement())
-  name     String  @unique
-  isActive Boolean @default(true)
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById Int?
+  updatedById Int?
+  createdBy   User?     @relation("UnitCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?     @relation("UnitUpdatedBy", fields: [updatedById], references: [id])
 }
 
 model StockTransaction {

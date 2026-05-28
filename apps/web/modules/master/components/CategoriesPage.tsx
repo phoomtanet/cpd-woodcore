@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { App, Button, Form, Input, Modal, Popconfirm, Space, Switch, Table, Tag } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import axios from 'axios'
 import PageHeader from '@/shared/components/PageHeader'
 import PermissionGuard from '@/shared/guards/PermissionGuard'
 import { useMasterStore } from '@/store/masterStore'
@@ -61,8 +62,9 @@ function CategoriesContent() {
       }
       setModal({ open: false, editing: null })
       await load()
-    } catch {
-      message.error('เกิดข้อผิดพลาด')
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : undefined
+      message.error(msg ?? 'เกิดข้อผิดพลาด')
     } finally {
       setLoading(false)
     }
@@ -73,8 +75,9 @@ function CategoriesContent() {
       await masterApi.deleteCategory(id)
       message.success('ลบสำเร็จ')
       await load()
-    } catch {
-      message.error('เกิดข้อผิดพลาด')
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : undefined
+      message.error(msg ?? 'เกิดข้อผิดพลาด')
     }
   }
 
@@ -93,6 +96,21 @@ function CategoriesContent() {
       width: 110,
       render: (_: unknown, r: CategoryItem) =>
         r.isActive ? <Tag color="success">ใช้งาน</Tag> : <Tag color="default">ไม่ใช้งาน</Tag>,
+    },
+    {
+      title: 'สร้างโดย',
+      key: 'createdBy',
+      width: 130,
+      render: (_: unknown, r: CategoryItem) => r.createdBy?.name ?? '-',
+    },
+    {
+      title: 'แก้ไขล่าสุด',
+      key: 'updatedAt',
+      width: 160,
+      render: (_: unknown, r: CategoryItem) =>
+        r.updatedAt
+          ? `${new Date(r.updatedAt).toLocaleDateString('th-TH')}${r.updatedBy?.name ? ` (${r.updatedBy.name})` : ''}`
+          : '-',
     },
     ...(canUpdate || canDelete
       ? [

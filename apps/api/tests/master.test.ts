@@ -14,6 +14,7 @@ jest.mock('@cpd/db', () => ({
     productTypeItem: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -21,6 +22,7 @@ jest.mock('@cpd/db', () => ({
     unit: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -28,6 +30,7 @@ jest.mock('@cpd/db', () => ({
     category: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -38,27 +41,50 @@ jest.mock('@cpd/db', () => ({
 import prisma from '@cpd/db'
 const mockPTFindMany = prisma.productTypeItem.findMany as jest.Mock
 const mockPTFindUnique = prisma.productTypeItem.findUnique as jest.Mock
+const mockPTFindFirst = prisma.productTypeItem.findFirst as jest.Mock
 const mockPTCreate = prisma.productTypeItem.create as jest.Mock
 const mockPTUpdate = prisma.productTypeItem.update as jest.Mock
-const mockPTDelete = prisma.productTypeItem.delete as jest.Mock
 const mockUnitFindMany = prisma.unit.findMany as jest.Mock
 const mockUnitFindUnique = prisma.unit.findUnique as jest.Mock
+const mockUnitFindFirst = prisma.unit.findFirst as jest.Mock
 const mockUnitCreate = prisma.unit.create as jest.Mock
 const mockUnitUpdate = prisma.unit.update as jest.Mock
-const mockUnitDelete = prisma.unit.delete as jest.Mock
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockCatFindMany = (prisma as any).category.findMany as jest.Mock
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockCatFindUnique = (prisma as any).category.findUnique as jest.Mock
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCatFindFirst = (prisma as any).category.findFirst as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockCatCreate = (prisma as any).category.create as jest.Mock
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockCatUpdate = (prisma as any).category.update as jest.Mock
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockCatDelete = (prisma as any).category.delete as jest.Mock
-const MOCK_PT = { id: 1, name: 'raw', label: 'วัตถุดิบ', isActive: true }
-const MOCK_UNIT = { id: 1, name: 'แผ่น', isActive: true }
-const MOCK_CATEGORY = { id: 1, name: 'พาเลท', isActive: true }
+
+const MOCK_PT = {
+  id: 1,
+  name: 'raw',
+  label: 'วัตถุดิบ',
+  isActive: true,
+  deletedAt: null,
+  createdBy: null,
+  updatedBy: null,
+}
+const MOCK_UNIT = {
+  id: 1,
+  name: 'แผ่น',
+  isActive: true,
+  deletedAt: null,
+  createdBy: null,
+  updatedBy: null,
+}
+const MOCK_CATEGORY = {
+  id: 1,
+  name: 'พาเลท',
+  isActive: true,
+  deletedAt: null,
+  createdBy: null,
+  updatedBy: null,
+}
 
 beforeEach(() => jest.clearAllMocks())
 
@@ -155,7 +181,7 @@ describe('PUT /api/master/product-types/:id', () => {
   })
 
   it('returns 200 when updated', async () => {
-    mockPTFindUnique.mockResolvedValue(MOCK_PT)
+    mockPTFindFirst.mockResolvedValue(MOCK_PT)
     mockPTUpdate.mockResolvedValue({ ...MOCK_PT, label: 'Updated' })
     const res = await request(app)
       .put('/api/master/product-types/1')
@@ -166,7 +192,7 @@ describe('PUT /api/master/product-types/:id', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockPTFindUnique.mockResolvedValue(null)
+    mockPTFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .put('/api/master/product-types/999')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -185,9 +211,9 @@ describe('DELETE /api/master/product-types/:id', () => {
     expect(res.status).toBe(403)
   })
 
-  it('returns 200 when deleted', async () => {
-    mockPTFindUnique.mockResolvedValue(MOCK_PT)
-    mockPTDelete.mockResolvedValue(MOCK_PT)
+  it('returns 200 when deleted (soft delete)', async () => {
+    mockPTFindFirst.mockResolvedValue(MOCK_PT)
+    mockPTUpdate.mockResolvedValue({ ...MOCK_PT, deletedAt: new Date() })
     const res = await request(app)
       .delete('/api/master/product-types/1')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -195,7 +221,7 @@ describe('DELETE /api/master/product-types/:id', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockPTFindUnique.mockResolvedValue(null)
+    mockPTFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .delete('/api/master/product-types/999')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -264,7 +290,8 @@ describe('POST /api/master/units', () => {
 
 describe('PUT /api/master/units/:id', () => {
   it('returns 200 when updated', async () => {
-    mockUnitFindUnique.mockResolvedValueOnce(MOCK_UNIT).mockResolvedValueOnce(null)
+    mockUnitFindFirst.mockResolvedValue(MOCK_UNIT)
+    mockUnitFindUnique.mockResolvedValue(null)
     mockUnitUpdate.mockResolvedValue({ ...MOCK_UNIT, name: 'แผ่นใหม่' })
     const res = await request(app)
       .put('/api/master/units/1')
@@ -274,7 +301,7 @@ describe('PUT /api/master/units/:id', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockUnitFindUnique.mockResolvedValue(null)
+    mockUnitFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .put('/api/master/units/999')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -286,9 +313,9 @@ describe('PUT /api/master/units/:id', () => {
 // ─── DELETE /api/master/units/:id ─────────────────────────────────────────────
 
 describe('DELETE /api/master/units/:id', () => {
-  it('returns 200 when deleted', async () => {
-    mockUnitFindUnique.mockResolvedValue(MOCK_UNIT)
-    mockUnitDelete.mockResolvedValue(MOCK_UNIT)
+  it('returns 200 when deleted (soft delete)', async () => {
+    mockUnitFindFirst.mockResolvedValue(MOCK_UNIT)
+    mockUnitUpdate.mockResolvedValue({ ...MOCK_UNIT, deletedAt: new Date() })
     const res = await request(app)
       .delete('/api/master/units/1')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -296,7 +323,7 @@ describe('DELETE /api/master/units/:id', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockUnitFindUnique.mockResolvedValue(null)
+    mockUnitFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .delete('/api/master/units/999')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -311,7 +338,7 @@ describe('GET /api/master/product-types?status', () => {
     mockPTFindMany.mockResolvedValue([MOCK_PT])
     await request(app).get('/api/master/product-types').set('Authorization', `Bearer ${adminToken}`)
     expect(mockPTFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isActive: true } })
+      expect.objectContaining({ where: { isActive: true, deletedAt: null } })
     )
   })
 
@@ -321,16 +348,18 @@ describe('GET /api/master/product-types?status', () => {
       .get('/api/master/product-types?status=active')
       .set('Authorization', `Bearer ${adminToken}`)
     expect(mockPTFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isActive: true } })
+      expect.objectContaining({ where: { isActive: true, deletedAt: null } })
     )
   })
 
-  it('returns all when status=all', async () => {
+  it('returns all (non-deleted) when status=all', async () => {
     mockPTFindMany.mockResolvedValue([MOCK_PT])
     await request(app)
       .get('/api/master/product-types?status=all')
       .set('Authorization', `Bearer ${adminToken}`)
-    expect(mockPTFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }))
+    expect(mockPTFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { deletedAt: null } })
+    )
   })
 })
 
@@ -361,7 +390,7 @@ describe('PATCH /api/master/product-types/:id/status', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockPTFindUnique.mockResolvedValue(null)
+    mockPTFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .patch('/api/master/product-types/999/status')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -370,7 +399,7 @@ describe('PATCH /api/master/product-types/:id/status', () => {
   })
 
   it('deactivates product type', async () => {
-    mockPTFindUnique.mockResolvedValue(MOCK_PT)
+    mockPTFindFirst.mockResolvedValue(MOCK_PT)
     mockPTUpdate.mockResolvedValue({ ...MOCK_PT, isActive: false })
     const res = await request(app)
       .patch('/api/master/product-types/1/status')
@@ -381,7 +410,7 @@ describe('PATCH /api/master/product-types/:id/status', () => {
   })
 
   it('activates product type', async () => {
-    mockPTFindUnique.mockResolvedValue({ ...MOCK_PT, isActive: false })
+    mockPTFindFirst.mockResolvedValue({ ...MOCK_PT, isActive: false })
     mockPTUpdate.mockResolvedValue(MOCK_PT)
     const res = await request(app)
       .patch('/api/master/product-types/1/status')
@@ -399,16 +428,18 @@ describe('GET /api/master/units?status', () => {
     mockUnitFindMany.mockResolvedValue([MOCK_UNIT])
     await request(app).get('/api/master/units').set('Authorization', `Bearer ${adminToken}`)
     expect(mockUnitFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isActive: true } })
+      expect.objectContaining({ where: { isActive: true, deletedAt: null } })
     )
   })
 
-  it('returns all when status=all', async () => {
+  it('returns all (non-deleted) when status=all', async () => {
     mockUnitFindMany.mockResolvedValue([MOCK_UNIT])
     await request(app)
       .get('/api/master/units?status=all')
       .set('Authorization', `Bearer ${adminToken}`)
-    expect(mockUnitFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }))
+    expect(mockUnitFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { deletedAt: null } })
+    )
   })
 })
 
@@ -437,7 +468,7 @@ describe('PATCH /api/master/units/:id/status', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockUnitFindUnique.mockResolvedValue(null)
+    mockUnitFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .patch('/api/master/units/999/status')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -446,7 +477,7 @@ describe('PATCH /api/master/units/:id/status', () => {
   })
 
   it('deactivates unit', async () => {
-    mockUnitFindUnique.mockResolvedValue(MOCK_UNIT)
+    mockUnitFindFirst.mockResolvedValue(MOCK_UNIT)
     mockUnitUpdate.mockResolvedValue({ ...MOCK_UNIT, isActive: false })
     const res = await request(app)
       .patch('/api/master/units/1/status')
@@ -457,7 +488,7 @@ describe('PATCH /api/master/units/:id/status', () => {
   })
 
   it('activates unit', async () => {
-    mockUnitFindUnique.mockResolvedValue({ ...MOCK_UNIT, isActive: false })
+    mockUnitFindFirst.mockResolvedValue({ ...MOCK_UNIT, isActive: false })
     mockUnitUpdate.mockResolvedValue(MOCK_UNIT)
     const res = await request(app)
       .patch('/api/master/units/1/status')
@@ -497,16 +528,18 @@ describe('GET /api/master/categories', () => {
     mockCatFindMany.mockResolvedValue([MOCK_CATEGORY])
     await request(app).get('/api/master/categories').set('Authorization', `Bearer ${adminToken}`)
     expect(mockCatFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isActive: true } })
+      expect.objectContaining({ where: { isActive: true, deletedAt: null } })
     )
   })
 
-  it('returns all when status=all', async () => {
+  it('returns all (non-deleted) when status=all', async () => {
     mockCatFindMany.mockResolvedValue([MOCK_CATEGORY])
     await request(app)
       .get('/api/master/categories?status=all')
       .set('Authorization', `Bearer ${adminToken}`)
-    expect(mockCatFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }))
+    expect(mockCatFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { deletedAt: null } })
+    )
   })
 })
 
@@ -567,7 +600,8 @@ describe('PUT /api/master/categories/:id', () => {
   })
 
   it('returns 200 when updated', async () => {
-    mockCatFindUnique.mockResolvedValueOnce(MOCK_CATEGORY).mockResolvedValueOnce(null)
+    mockCatFindFirst.mockResolvedValue(MOCK_CATEGORY)
+    mockCatFindUnique.mockResolvedValue(null)
     mockCatUpdate.mockResolvedValue({ ...MOCK_CATEGORY, name: 'ใหม่' })
     const res = await request(app)
       .put('/api/master/categories/1')
@@ -578,7 +612,7 @@ describe('PUT /api/master/categories/:id', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockCatFindUnique.mockResolvedValue(null)
+    mockCatFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .put('/api/master/categories/999')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -587,11 +621,8 @@ describe('PUT /api/master/categories/:id', () => {
   })
 
   it('returns 409 when name conflict', async () => {
-    mockCatFindUnique.mockResolvedValueOnce(MOCK_CATEGORY).mockResolvedValueOnce({
-      ...MOCK_CATEGORY,
-      id: 2,
-      name: 'ซ้ำ',
-    })
+    mockCatFindFirst.mockResolvedValue(MOCK_CATEGORY)
+    mockCatFindUnique.mockResolvedValue({ ...MOCK_CATEGORY, id: 2, name: 'ซ้ำ' })
     const res = await request(app)
       .put('/api/master/categories/1')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -610,9 +641,9 @@ describe('DELETE /api/master/categories/:id', () => {
     expect(res.status).toBe(403)
   })
 
-  it('returns 200 when deleted', async () => {
-    mockCatFindUnique.mockResolvedValue(MOCK_CATEGORY)
-    mockCatDelete.mockResolvedValue(MOCK_CATEGORY)
+  it('returns 200 when deleted (soft delete)', async () => {
+    mockCatFindFirst.mockResolvedValue(MOCK_CATEGORY)
+    mockCatUpdate.mockResolvedValue({ ...MOCK_CATEGORY, deletedAt: new Date() })
     const res = await request(app)
       .delete('/api/master/categories/1')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -620,7 +651,7 @@ describe('DELETE /api/master/categories/:id', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockCatFindUnique.mockResolvedValue(null)
+    mockCatFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .delete('/api/master/categories/999')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -655,7 +686,7 @@ describe('PATCH /api/master/categories/:id/status', () => {
   })
 
   it('returns 404 when not found', async () => {
-    mockCatFindUnique.mockResolvedValue(null)
+    mockCatFindFirst.mockResolvedValue(null)
     const res = await request(app)
       .patch('/api/master/categories/999/status')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -664,7 +695,7 @@ describe('PATCH /api/master/categories/:id/status', () => {
   })
 
   it('deactivates category', async () => {
-    mockCatFindUnique.mockResolvedValue(MOCK_CATEGORY)
+    mockCatFindFirst.mockResolvedValue(MOCK_CATEGORY)
     mockCatUpdate.mockResolvedValue({ ...MOCK_CATEGORY, isActive: false })
     const res = await request(app)
       .patch('/api/master/categories/1/status')
@@ -675,7 +706,7 @@ describe('PATCH /api/master/categories/:id/status', () => {
   })
 
   it('activates category', async () => {
-    mockCatFindUnique.mockResolvedValue({ ...MOCK_CATEGORY, isActive: false })
+    mockCatFindFirst.mockResolvedValue({ ...MOCK_CATEGORY, isActive: false })
     mockCatUpdate.mockResolvedValue(MOCK_CATEGORY)
     const res = await request(app)
       .patch('/api/master/categories/1/status')

@@ -38,18 +38,30 @@ export interface ProductTypeItem {
   name: string
   label: string
   isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+  createdBy?: { name: string } | null
+  updatedBy?: { name: string } | null
 }
 
 export interface UnitItem {
   id: number
   name: string
   isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+  createdBy?: { name: string } | null
+  updatedBy?: { name: string } | null
 }
 
 export interface CategoryItem {
   id: number
   name: string
   isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+  createdBy?: { name: string } | null
+  updatedBy?: { name: string } | null
 }
 
 export interface RolePermission {
