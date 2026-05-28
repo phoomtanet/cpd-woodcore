@@ -6,6 +6,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import { stockApi } from '../services/stockApi'
 import { productsApi } from '@/modules/products/services/productsApi'
 import { usePermissionStore } from '@/store/permissionStore'
+import { syncAlerts } from '@/store/alertsStore'
 import type { Product } from '@/modules/products/types'
 
 function StockAdjustForm() {
@@ -32,6 +33,7 @@ function StockAdjustForm() {
     try {
       await stockApi.stockAdjust(values)
       message.success('ปรับสต๊อกเรียบร้อย')
+      syncAlerts()
       form.resetFields()
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error

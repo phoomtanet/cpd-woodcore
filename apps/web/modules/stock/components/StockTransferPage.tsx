@@ -6,6 +6,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import { stockApi } from '../services/stockApi'
 import { productsApi } from '@/modules/products/services/productsApi'
 import { usePermissionStore } from '@/store/permissionStore'
+import { syncAlerts } from '@/store/alertsStore'
 import type { Product } from '@/modules/products/types'
 
 function StockTransferForm() {
@@ -33,6 +34,7 @@ function StockTransferForm() {
     try {
       await stockApi.stockTransfer(values)
       message.success('โอนย้ายสินค้าเรียบร้อย')
+      syncAlerts()
       form.resetFields()
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error

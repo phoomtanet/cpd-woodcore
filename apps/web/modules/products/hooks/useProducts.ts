@@ -3,16 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { productsApi } from '../services/productsApi'
-import { stockApi } from '@/modules/stock/services/stockApi'
-import { useAlertsStore } from '@/store/alertsStore'
+import { syncAlerts } from '@/store/alertsStore'
 import type { Product, UpdateProductDto } from '../types'
-
-function syncAlerts() {
-  stockApi
-    .getLowAlert()
-    .then((data) => useAlertsStore.getState().setLowStockCount(data.length))
-    .catch(() => {})
-}
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([])

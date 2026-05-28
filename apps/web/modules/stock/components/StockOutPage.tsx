@@ -6,6 +6,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import { stockApi } from '../services/stockApi'
 import { productsApi } from '@/modules/products/services/productsApi'
 import { usePermissionStore } from '@/store/permissionStore'
+import { syncAlerts } from '@/store/alertsStore'
 import type { Product } from '@/modules/products/types'
 
 function StockOutForm() {
@@ -27,6 +28,7 @@ function StockOutForm() {
     try {
       await stockApi.stockOut(values)
       message.success('เบิกสินค้าออกเรียบร้อย')
+      syncAlerts()
       form.resetFields()
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
