@@ -73,4 +73,75 @@ router.patch(
 )
 router.delete('/units/:id', authenticate, requireRole('admin'), MasterController.removeUnit)
 
+const categorySchema = z.object({
+  name: z.string({ error: 'Required' }).min(1),
+})
+
+const skuPrefixSchema = z.object({
+  prefix: z.string({ error: 'Required' }).min(1),
+  label: z.string({ error: 'Required' }).min(1),
+})
+
+const skuPrefixUpdateSchema = skuPrefixSchema.partial()
+
+// Categories
+router.get('/categories', authenticate, MasterController.listCategories)
+router.post(
+  '/categories',
+  authenticate,
+  requireRole('admin'),
+  validate(categorySchema),
+  MasterController.createCategory
+)
+router.put(
+  '/categories/:id',
+  authenticate,
+  requireRole('admin'),
+  validate(categorySchema),
+  MasterController.updateCategory
+)
+router.patch(
+  '/categories/:id/status',
+  authenticate,
+  requireRole('admin'),
+  validate(statusSchema),
+  MasterController.updateCategoryStatus
+)
+router.delete(
+  '/categories/:id',
+  authenticate,
+  requireRole('admin'),
+  MasterController.removeCategory
+)
+
+// SKU Prefixes
+router.get('/sku-prefixes', authenticate, MasterController.listSkuPrefixes)
+router.post(
+  '/sku-prefixes',
+  authenticate,
+  requireRole('admin'),
+  validate(skuPrefixSchema),
+  MasterController.createSkuPrefix
+)
+router.put(
+  '/sku-prefixes/:id',
+  authenticate,
+  requireRole('admin'),
+  validate(skuPrefixUpdateSchema),
+  MasterController.updateSkuPrefix
+)
+router.patch(
+  '/sku-prefixes/:id/status',
+  authenticate,
+  requireRole('admin'),
+  validate(statusSchema),
+  MasterController.updateSkuPrefixStatus
+)
+router.delete(
+  '/sku-prefixes/:id',
+  authenticate,
+  requireRole('admin'),
+  MasterController.removeSkuPrefix
+)
+
 export default router

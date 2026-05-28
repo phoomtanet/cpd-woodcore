@@ -46,6 +46,19 @@ export interface UnitItem {
   isActive: boolean
 }
 
+export interface CategoryItem {
+  id: number
+  name: string
+  isActive: boolean
+}
+
+export interface SkuPrefixItem {
+  id: number
+  prefix: string
+  label: string
+  isActive: boolean
+}
+
 export interface RolePermission {
   id: number
   role: Role

@@ -25,6 +25,20 @@ jest.mock('@cpd/db', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    category: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    skuPrefix: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
   },
 }))
 
@@ -39,9 +53,31 @@ const mockUnitFindUnique = prisma.unit.findUnique as jest.Mock
 const mockUnitCreate = prisma.unit.create as jest.Mock
 const mockUnitUpdate = prisma.unit.update as jest.Mock
 const mockUnitDelete = prisma.unit.delete as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCatFindMany = (prisma as any).category.findMany as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCatFindUnique = (prisma as any).category.findUnique as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCatCreate = (prisma as any).category.create as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCatUpdate = (prisma as any).category.update as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCatDelete = (prisma as any).category.delete as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSKUFindMany = (prisma as any).skuPrefix.findMany as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSKUFindUnique = (prisma as any).skuPrefix.findUnique as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSKUCreate = (prisma as any).skuPrefix.create as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSKUUpdate = (prisma as any).skuPrefix.update as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSKUDelete = (prisma as any).skuPrefix.delete as jest.Mock
 
 const MOCK_PT = { id: 1, name: 'raw', label: 'วัตถุดิบ', isActive: true }
 const MOCK_UNIT = { id: 1, name: 'แผ่น', isActive: true }
+const MOCK_CATEGORY = { id: 1, name: 'พาเลท', isActive: true }
+const MOCK_SKU_PREFIX = { id: 1, prefix: 'PAL', label: 'พาเลท', isActive: true }
 
 beforeEach(() => jest.clearAllMocks())
 
@@ -444,6 +480,444 @@ describe('PATCH /api/master/units/:id/status', () => {
     mockUnitUpdate.mockResolvedValue(MOCK_UNIT)
     const res = await request(app)
       .patch('/api/master/units/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: true })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(true)
+  })
+})
+
+// ─── GET /api/master/categories ───────────────────────────────────────────────
+
+describe('GET /api/master/categories', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/master/categories')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 200 for admin', async () => {
+    mockCatFindMany.mockResolvedValue([MOCK_CATEGORY])
+    const res = await request(app)
+      .get('/api/master/categories')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+  })
+
+  it('returns 200 for staff', async () => {
+    mockCatFindMany.mockResolvedValue([MOCK_CATEGORY])
+    const res = await request(app)
+      .get('/api/master/categories')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('filters active by default', async () => {
+    mockCatFindMany.mockResolvedValue([MOCK_CATEGORY])
+    await request(app).get('/api/master/categories').set('Authorization', `Bearer ${adminToken}`)
+    expect(mockCatFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isActive: true } })
+    )
+  })
+
+  it('returns all when status=all', async () => {
+    mockCatFindMany.mockResolvedValue([MOCK_CATEGORY])
+    await request(app)
+      .get('/api/master/categories?status=all')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(mockCatFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }))
+  })
+})
+
+// ─── POST /api/master/categories ──────────────────────────────────────────────
+
+describe('POST /api/master/categories', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).post('/api/master/categories').send({ name: 'ใหม่' })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for manager', async () => {
+    const res = await request(app)
+      .post('/api/master/categories')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ name: 'ใหม่' })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when name is missing', async () => {
+    const res = await request(app)
+      .post('/api/master/categories')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 201 when valid (admin)', async () => {
+    mockCatFindUnique.mockResolvedValue(null)
+    mockCatCreate.mockResolvedValue(MOCK_CATEGORY)
+    const res = await request(app)
+      .post('/api/master/categories')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'พาเลท' })
+    expect(res.status).toBe(201)
+    expect(res.body.data.name).toBe('พาเลท')
+  })
+
+  it('returns 409 when name already exists', async () => {
+    mockCatFindUnique.mockResolvedValue(MOCK_CATEGORY)
+    const res = await request(app)
+      .post('/api/master/categories')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'พาเลท' })
+    expect(res.status).toBe(409)
+  })
+})
+
+// ─── PUT /api/master/categories/:id ───────────────────────────────────────────
+
+describe('PUT /api/master/categories/:id', () => {
+  it('returns 403 for staff', async () => {
+    const res = await request(app)
+      .put('/api/master/categories/1')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ name: 'ใหม่' })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 200 when updated', async () => {
+    mockCatFindUnique.mockResolvedValueOnce(MOCK_CATEGORY).mockResolvedValueOnce(null)
+    mockCatUpdate.mockResolvedValue({ ...MOCK_CATEGORY, name: 'ใหม่' })
+    const res = await request(app)
+      .put('/api/master/categories/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'ใหม่' })
+    expect(res.status).toBe(200)
+    expect(res.body.data.name).toBe('ใหม่')
+  })
+
+  it('returns 404 when not found', async () => {
+    mockCatFindUnique.mockResolvedValue(null)
+    const res = await request(app)
+      .put('/api/master/categories/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'ใหม่' })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 409 when name conflict', async () => {
+    mockCatFindUnique.mockResolvedValueOnce(MOCK_CATEGORY).mockResolvedValueOnce({
+      ...MOCK_CATEGORY,
+      id: 2,
+      name: 'ซ้ำ',
+    })
+    const res = await request(app)
+      .put('/api/master/categories/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'ซ้ำ' })
+    expect(res.status).toBe(409)
+  })
+})
+
+// ─── DELETE /api/master/categories/:id ────────────────────────────────────────
+
+describe('DELETE /api/master/categories/:id', () => {
+  it('returns 403 for manager', async () => {
+    const res = await request(app)
+      .delete('/api/master/categories/1')
+      .set('Authorization', `Bearer ${managerToken}`)
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 200 when deleted', async () => {
+    mockCatFindUnique.mockResolvedValue(MOCK_CATEGORY)
+    mockCatDelete.mockResolvedValue(MOCK_CATEGORY)
+    const res = await request(app)
+      .delete('/api/master/categories/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('returns 404 when not found', async () => {
+    mockCatFindUnique.mockResolvedValue(null)
+    const res = await request(app)
+      .delete('/api/master/categories/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(404)
+  })
+})
+
+// ─── PATCH /api/master/categories/:id/status ──────────────────────────────────
+
+describe('PATCH /api/master/categories/:id/status', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app)
+      .patch('/api/master/categories/1/status')
+      .send({ isActive: false })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for manager', async () => {
+    const res = await request(app)
+      .patch('/api/master/categories/1/status')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when isActive is missing', async () => {
+    const res = await request(app)
+      .patch('/api/master/categories/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when not found', async () => {
+    mockCatFindUnique.mockResolvedValue(null)
+    const res = await request(app)
+      .patch('/api/master/categories/999/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(404)
+  })
+
+  it('deactivates category', async () => {
+    mockCatFindUnique.mockResolvedValue(MOCK_CATEGORY)
+    mockCatUpdate.mockResolvedValue({ ...MOCK_CATEGORY, isActive: false })
+    const res = await request(app)
+      .patch('/api/master/categories/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(false)
+  })
+
+  it('activates category', async () => {
+    mockCatFindUnique.mockResolvedValue({ ...MOCK_CATEGORY, isActive: false })
+    mockCatUpdate.mockResolvedValue(MOCK_CATEGORY)
+    const res = await request(app)
+      .patch('/api/master/categories/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: true })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(true)
+  })
+})
+
+// ─── GET /api/master/sku-prefixes ─────────────────────────────────────────────
+
+describe('GET /api/master/sku-prefixes', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/master/sku-prefixes')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 200 for all roles', async () => {
+    mockSKUFindMany.mockResolvedValue([MOCK_SKU_PREFIX])
+    const res = await request(app)
+      .get('/api/master/sku-prefixes')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+  })
+
+  it('filters active by default', async () => {
+    mockSKUFindMany.mockResolvedValue([MOCK_SKU_PREFIX])
+    await request(app).get('/api/master/sku-prefixes').set('Authorization', `Bearer ${adminToken}`)
+    expect(mockSKUFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isActive: true } })
+    )
+  })
+
+  it('returns all when status=all', async () => {
+    mockSKUFindMany.mockResolvedValue([MOCK_SKU_PREFIX])
+    await request(app)
+      .get('/api/master/sku-prefixes?status=all')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(mockSKUFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }))
+  })
+})
+
+// ─── POST /api/master/sku-prefixes ────────────────────────────────────────────
+
+describe('POST /api/master/sku-prefixes', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app)
+      .post('/api/master/sku-prefixes')
+      .send({ prefix: 'NEW', label: 'ใหม่' })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for manager', async () => {
+    const res = await request(app)
+      .post('/api/master/sku-prefixes')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ prefix: 'NEW', label: 'ใหม่' })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when prefix is missing', async () => {
+    const res = await request(app)
+      .post('/api/master/sku-prefixes')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ label: 'ใหม่' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when label is missing', async () => {
+    const res = await request(app)
+      .post('/api/master/sku-prefixes')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ prefix: 'NEW' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 201 when valid (admin)', async () => {
+    mockSKUFindUnique.mockResolvedValue(null)
+    mockSKUCreate.mockResolvedValue(MOCK_SKU_PREFIX)
+    const res = await request(app)
+      .post('/api/master/sku-prefixes')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ prefix: 'PAL', label: 'พาเลท' })
+    expect(res.status).toBe(201)
+    expect(res.body.data.prefix).toBe('PAL')
+  })
+
+  it('returns 409 when prefix already exists', async () => {
+    mockSKUFindUnique.mockResolvedValue(MOCK_SKU_PREFIX)
+    const res = await request(app)
+      .post('/api/master/sku-prefixes')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ prefix: 'PAL', label: 'พาเลท' })
+    expect(res.status).toBe(409)
+  })
+})
+
+// ─── PUT /api/master/sku-prefixes/:id ─────────────────────────────────────────
+
+describe('PUT /api/master/sku-prefixes/:id', () => {
+  it('returns 403 for staff', async () => {
+    const res = await request(app)
+      .put('/api/master/sku-prefixes/1')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ label: 'Updated' })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 200 when updated', async () => {
+    mockSKUFindUnique.mockResolvedValue(MOCK_SKU_PREFIX)
+    mockSKUUpdate.mockResolvedValue({ ...MOCK_SKU_PREFIX, label: 'Updated' })
+    const res = await request(app)
+      .put('/api/master/sku-prefixes/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ label: 'Updated' })
+    expect(res.status).toBe(200)
+    expect(res.body.data.label).toBe('Updated')
+  })
+
+  it('returns 404 when not found', async () => {
+    mockSKUFindUnique.mockResolvedValue(null)
+    const res = await request(app)
+      .put('/api/master/sku-prefixes/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ label: 'Updated' })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 409 when prefix conflict', async () => {
+    mockSKUFindUnique.mockResolvedValueOnce(MOCK_SKU_PREFIX).mockResolvedValueOnce({
+      ...MOCK_SKU_PREFIX,
+      id: 2,
+      prefix: 'DUP',
+    })
+    const res = await request(app)
+      .put('/api/master/sku-prefixes/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ prefix: 'DUP' })
+    expect(res.status).toBe(409)
+  })
+})
+
+// ─── DELETE /api/master/sku-prefixes/:id ──────────────────────────────────────
+
+describe('DELETE /api/master/sku-prefixes/:id', () => {
+  it('returns 403 for manager', async () => {
+    const res = await request(app)
+      .delete('/api/master/sku-prefixes/1')
+      .set('Authorization', `Bearer ${managerToken}`)
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 200 when deleted', async () => {
+    mockSKUFindUnique.mockResolvedValue(MOCK_SKU_PREFIX)
+    mockSKUDelete.mockResolvedValue(MOCK_SKU_PREFIX)
+    const res = await request(app)
+      .delete('/api/master/sku-prefixes/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('returns 404 when not found', async () => {
+    mockSKUFindUnique.mockResolvedValue(null)
+    const res = await request(app)
+      .delete('/api/master/sku-prefixes/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(404)
+  })
+})
+
+// ─── PATCH /api/master/sku-prefixes/:id/status ────────────────────────────────
+
+describe('PATCH /api/master/sku-prefixes/:id/status', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app)
+      .patch('/api/master/sku-prefixes/1/status')
+      .send({ isActive: false })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for staff', async () => {
+    const res = await request(app)
+      .patch('/api/master/sku-prefixes/1/status')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when isActive is missing', async () => {
+    const res = await request(app)
+      .patch('/api/master/sku-prefixes/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when not found', async () => {
+    mockSKUFindUnique.mockResolvedValue(null)
+    const res = await request(app)
+      .patch('/api/master/sku-prefixes/999/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(404)
+  })
+
+  it('deactivates sku prefix', async () => {
+    mockSKUFindUnique.mockResolvedValue(MOCK_SKU_PREFIX)
+    mockSKUUpdate.mockResolvedValue({ ...MOCK_SKU_PREFIX, isActive: false })
+    const res = await request(app)
+      .patch('/api/master/sku-prefixes/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(false)
+  })
+
+  it('activates sku prefix', async () => {
+    mockSKUFindUnique.mockResolvedValue({ ...MOCK_SKU_PREFIX, isActive: false })
+    mockSKUUpdate.mockResolvedValue(MOCK_SKU_PREFIX)
+    const res = await request(app)
+      .patch('/api/master/sku-prefixes/1/status')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ isActive: true })
     expect(res.status).toBe(200)

@@ -64,4 +64,68 @@ export const MasterRepository = {
   deleteUnitById(id: number) {
     return prisma.unit.delete({ where: { id } })
   },
+
+  // Categories
+  findAllCategories(status: 'active' | 'all' = 'active') {
+    return prisma.category.findMany({
+      where: status === 'active' ? { isActive: true } : {},
+      orderBy: { id: 'asc' },
+    })
+  },
+
+  findCategoryById(id: number) {
+    return prisma.category.findUnique({ where: { id } })
+  },
+
+  findCategoryByName(name: string) {
+    return prisma.category.findUnique({ where: { name } })
+  },
+
+  createCategory(data: { name: string }) {
+    return prisma.category.create({ data })
+  },
+
+  updateCategory(id: number, data: { name: string }) {
+    return prisma.category.update({ where: { id }, data })
+  },
+
+  updateCategoryStatus(id: number, isActive: boolean) {
+    return prisma.category.update({ where: { id }, data: { isActive } })
+  },
+
+  deleteCategoryById(id: number) {
+    return prisma.category.delete({ where: { id } })
+  },
+
+  // SKU Prefixes
+  findAllSkuPrefixes(status: 'active' | 'all' = 'active') {
+    return prisma.skuPrefix.findMany({
+      where: status === 'active' ? { isActive: true } : {},
+      orderBy: { id: 'asc' },
+    })
+  },
+
+  findSkuPrefixById(id: number) {
+    return prisma.skuPrefix.findUnique({ where: { id } })
+  },
+
+  findSkuPrefixByPrefix(prefix: string) {
+    return prisma.skuPrefix.findUnique({ where: { prefix } })
+  },
+
+  createSkuPrefix(data: { prefix: string; label: string }) {
+    return prisma.skuPrefix.create({ data })
+  },
+
+  updateSkuPrefix(id: number, data: { prefix?: string; label?: string }) {
+    return prisma.skuPrefix.update({ where: { id }, data })
+  },
+
+  updateSkuPrefixStatus(id: number, isActive: boolean) {
+    return prisma.skuPrefix.update({ where: { id }, data: { isActive } })
+  },
+
+  deleteSkuPrefixById(id: number) {
+    return prisma.skuPrefix.delete({ where: { id } })
+  },
 }

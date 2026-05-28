@@ -197,6 +197,8 @@ async function main() {
     'settings',
     'master-types',
     'master-units',
+    'master-categories',
+    'master-sku-prefixes',
   ]
 
   const DEFAULTS: Record<RoleKey, Record<string, PermDef>> = {
@@ -217,6 +219,13 @@ async function main() {
       settings: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-types': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
       'master-units': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'master-categories': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'master-sku-prefixes': {
+        canView: true,
+        canCreate: false,
+        canUpdate: false,
+        canDelete: false,
+      },
     },
     staff: {
       dashboard: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
@@ -232,6 +241,13 @@ async function main() {
       settings: { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-types': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-units': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-categories': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-sku-prefixes': {
+        canView: false,
+        canCreate: false,
+        canUpdate: false,
+        canDelete: false,
+      },
     },
   }
 

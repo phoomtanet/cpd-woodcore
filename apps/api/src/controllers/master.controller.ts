@@ -98,4 +98,104 @@ export const MasterController = {
       next(err)
     }
   },
+
+  // Categories
+  async listCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const status = req.query.status === 'all' ? 'all' : 'active'
+      const data = await MasterService.findAllCategories(status)
+      res.json({ data, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async createCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.createCategory(req.body)
+      res.status(201).json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.updateCategory(Number(req.params.id), req.body)
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateCategoryStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.toggleCategoryStatus(
+        Number(req.params.id),
+        req.body.isActive
+      )
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async removeCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await MasterService.deleteCategoryById(Number(req.params.id))
+      res.json({ data: null, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  // SKU Prefixes
+  async listSkuPrefixes(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const status = req.query.status === 'all' ? 'all' : 'active'
+      const data = await MasterService.findAllSkuPrefixes(status)
+      res.json({ data, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async createSkuPrefix(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.createSkuPrefix(req.body)
+      res.status(201).json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateSkuPrefix(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.updateSkuPrefix(Number(req.params.id), req.body)
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateSkuPrefixStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.toggleSkuPrefixStatus(
+        Number(req.params.id),
+        req.body.isActive
+      )
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async removeSkuPrefix(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await MasterService.deleteSkuPrefixById(Number(req.params.id))
+      res.json({ data: null, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
 }

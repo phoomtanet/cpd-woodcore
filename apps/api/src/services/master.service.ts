@@ -67,4 +67,70 @@ export const MasterService = {
     if (!item) throw new NotFoundError('Unit not found')
     return MasterRepository.deleteUnitById(id)
   },
+
+  // Categories
+  findAllCategories(status: 'active' | 'all' = 'active') {
+    return MasterRepository.findAllCategories(status)
+  },
+
+  async createCategory(data: { name: string }) {
+    const existing = await MasterRepository.findCategoryByName(data.name)
+    if (existing) throw new ConflictError('Category name already exists')
+    return MasterRepository.createCategory(data)
+  },
+
+  async updateCategory(id: number, data: { name: string }) {
+    const item = await MasterRepository.findCategoryById(id)
+    if (!item) throw new NotFoundError('Category not found')
+    if (data.name !== item.name) {
+      const conflict = await MasterRepository.findCategoryByName(data.name)
+      if (conflict) throw new ConflictError('Category name already exists')
+    }
+    return MasterRepository.updateCategory(id, data)
+  },
+
+  async toggleCategoryStatus(id: number, isActive: boolean) {
+    const item = await MasterRepository.findCategoryById(id)
+    if (!item) throw new NotFoundError('Category not found')
+    return MasterRepository.updateCategoryStatus(id, isActive)
+  },
+
+  async deleteCategoryById(id: number) {
+    const item = await MasterRepository.findCategoryById(id)
+    if (!item) throw new NotFoundError('Category not found')
+    return MasterRepository.deleteCategoryById(id)
+  },
+
+  // SKU Prefixes
+  findAllSkuPrefixes(status: 'active' | 'all' = 'active') {
+    return MasterRepository.findAllSkuPrefixes(status)
+  },
+
+  async createSkuPrefix(data: { prefix: string; label: string }) {
+    const existing = await MasterRepository.findSkuPrefixByPrefix(data.prefix)
+    if (existing) throw new ConflictError('SKU prefix already exists')
+    return MasterRepository.createSkuPrefix(data)
+  },
+
+  async updateSkuPrefix(id: number, data: { prefix?: string; label?: string }) {
+    const item = await MasterRepository.findSkuPrefixById(id)
+    if (!item) throw new NotFoundError('SKU prefix not found')
+    if (data.prefix && data.prefix !== item.prefix) {
+      const conflict = await MasterRepository.findSkuPrefixByPrefix(data.prefix)
+      if (conflict) throw new ConflictError('SKU prefix already exists')
+    }
+    return MasterRepository.updateSkuPrefix(id, data)
+  },
+
+  async toggleSkuPrefixStatus(id: number, isActive: boolean) {
+    const item = await MasterRepository.findSkuPrefixById(id)
+    if (!item) throw new NotFoundError('SKU prefix not found')
+    return MasterRepository.updateSkuPrefixStatus(id, isActive)
+  },
+
+  async deleteSkuPrefixById(id: number) {
+    const item = await MasterRepository.findSkuPrefixById(id)
+    if (!item) throw new NotFoundError('SKU prefix not found')
+    return MasterRepository.deleteSkuPrefixById(id)
+  },
 }
