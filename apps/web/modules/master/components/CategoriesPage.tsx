@@ -81,6 +81,13 @@ function CategoriesContent() {
   }
 
   const columns = [
+    {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 60,
+      align: 'center' as const,
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: 'หมวดหมู่', dataIndex: 'name', key: 'name' },
     {
       title: 'สถานะ',

@@ -72,6 +72,13 @@ function StockCardContent() {
 
   const columns: ColumnsType<StockCardRow> = [
     {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 60,
+      align: 'center' as const,
+      render: (_: unknown, __: unknown, index: number) => (page - 1) * pageSize + index + 1,
+    },
+    {
       title: 'วันที่',
       dataIndex: 'createdAt',
       key: 'createdAt',

@@ -91,6 +91,13 @@ function ProductTypesContent() {
   }
 
   const columns = [
+    {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 60,
+      align: 'center' as const,
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: 'ชื่อ (name)', dataIndex: 'name', key: 'name', render: (v: string) => <Tag>{v}</Tag> },
     { title: 'ป้ายกำกับ (label)', dataIndex: 'label', key: 'label' },
     {
@@ -257,6 +264,13 @@ function UnitsContent() {
   }
 
   const columns = [
+    {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 60,
+      align: 'center' as const,
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: 'หน่วย', dataIndex: 'name', key: 'name' },
     {
       title: 'สถานะ',

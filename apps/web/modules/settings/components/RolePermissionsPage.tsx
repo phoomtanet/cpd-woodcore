@@ -24,6 +24,13 @@ export default function RolePermissionsPage() {
 
   const columns = [
     {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 60,
+      align: 'center' as const,
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: 'Role',
       key: 'role',
       render: (_: unknown, record: RoleRow) => getLabelByName(record.role),

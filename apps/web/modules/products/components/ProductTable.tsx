@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Table, Tag, Button, Space, Popconfirm, App, Avatar } from 'antd'
 import { EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
@@ -41,6 +42,8 @@ export default function ProductTable({
   onDelete,
 }: ProductTableProps) {
   const { message } = App.useApp()
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const handleDelete = async (id: number) => {
     try {
@@ -52,6 +55,13 @@ export default function ProductTable({
   }
 
   const columns: ColumnsType<Product> = [
+    {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 60,
+      align: 'center' as const,
+      render: (_: unknown, __: unknown, index: number) => (page - 1) * pageSize + index + 1,
+    },
     {
       title: 'รูป',
       key: 'image',
@@ -151,7 +161,18 @@ export default function ProductTable({
       dataSource={products}
       rowKey="id"
       loading={loading}
-      pagination={{ pageSize: 10, showTotal: (total: number) => `ทั้งหมด ${total} รายการ` }}
+      pagination={{
+        current: page,
+        pageSize,
+        showSizeChanger: true,
+        pageSizeOptions: [10, 20, 50, 100],
+        showTotal: (total: number) => `ทั้งหมด ${total} รายการ`,
+        onChange: (p: number) => setPage(p),
+        onShowSizeChange: (_: number, size: number) => {
+          setPageSize(size)
+          setPage(1)
+        },
+      }}
       size="small"
       scroll={{ x: 'max-content' }}
     />

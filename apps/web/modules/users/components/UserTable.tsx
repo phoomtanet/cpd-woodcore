@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Table, Tag, Button, Space, Popconfirm, App } from 'antd'
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
@@ -22,6 +23,8 @@ interface UserTableProps {
 export default function UserTable({ users, loading, onEdit, onDelete }: UserTableProps) {
   const { message } = App.useApp()
   const getLabelByName = useRolesStore((s) => s.getLabelByName)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const handleDelete = async (id: number) => {
     try {
@@ -33,6 +36,13 @@ export default function UserTable({ users, loading, onEdit, onDelete }: UserTabl
   }
 
   const columns: ColumnsType<User> = [
+    {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 60,
+      align: 'center' as const,
+      render: (_: unknown, __: unknown, index: number) => (page - 1) * pageSize + index + 1,
+    },
     {
       title: 'ชื่อ',
       dataIndex: 'name',
@@ -86,7 +96,18 @@ export default function UserTable({ users, loading, onEdit, onDelete }: UserTabl
       dataSource={users}
       rowKey="id"
       loading={loading}
-      pagination={{ pageSize: 10 }}
+      pagination={{
+        current: page,
+        pageSize,
+        showSizeChanger: true,
+        pageSizeOptions: [10, 20, 50, 100],
+        showTotal: (total: number) => `ทั้งหมด ${total} รายการ`,
+        onChange: (p: number) => setPage(p),
+        onShowSizeChange: (_: number, size: number) => {
+          setPageSize(size)
+          setPage(1)
+        },
+      }}
     />
   )
 }
