@@ -1,5 +1,5 @@
 import prisma from '@cpd/db'
-import type { TxType } from '@prisma/client'
+import type { TxType, Product } from '@prisma/client'
 
 export interface CreateStockTxInput {
   productId: number
@@ -80,6 +80,15 @@ export const StockRepository = {
       include: { product: true, createdBy: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'asc' },
     })
+  },
+
+  findLowStock(): Promise<Product[]> {
+    return prisma.$queryRaw<Product[]>`
+      SELECT * FROM "Product"
+      WHERE "currentStock" < "minStock"
+      AND "deletedAt" IS NULL
+      ORDER BY ("minStock" - "currentStock") DESC
+    `
   },
 
   findHistory({

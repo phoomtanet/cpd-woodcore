@@ -40,8 +40,8 @@ const mockUnitCreate = prisma.unit.create as jest.Mock
 const mockUnitUpdate = prisma.unit.update as jest.Mock
 const mockUnitDelete = prisma.unit.delete as jest.Mock
 
-const MOCK_PT = { id: 1, name: 'raw', label: 'วัตถุดิบ' }
-const MOCK_UNIT = { id: 1, name: 'แผ่น' }
+const MOCK_PT = { id: 1, name: 'raw', label: 'วัตถุดิบ', isActive: true }
+const MOCK_UNIT = { id: 1, name: 'แผ่น', isActive: true }
 
 beforeEach(() => jest.clearAllMocks())
 
@@ -284,5 +284,169 @@ describe('DELETE /api/master/units/:id', () => {
       .delete('/api/master/units/999')
       .set('Authorization', `Bearer ${adminToken}`)
     expect(res.status).toBe(404)
+  })
+})
+
+// ─── GET /api/master/product-types?status ─────────────────────────────────
+
+describe('GET /api/master/product-types?status', () => {
+  it('filters active by default (no status param)', async () => {
+    mockPTFindMany.mockResolvedValue([MOCK_PT])
+    await request(app).get('/api/master/product-types').set('Authorization', `Bearer ${adminToken}`)
+    expect(mockPTFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isActive: true } })
+    )
+  })
+
+  it('filters active when status=active', async () => {
+    mockPTFindMany.mockResolvedValue([MOCK_PT])
+    await request(app)
+      .get('/api/master/product-types?status=active')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(mockPTFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isActive: true } })
+    )
+  })
+
+  it('returns all when status=all', async () => {
+    mockPTFindMany.mockResolvedValue([MOCK_PT])
+    await request(app)
+      .get('/api/master/product-types?status=all')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(mockPTFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }))
+  })
+})
+
+// ─── PATCH /api/master/product-types/:id/status ───────────────────────────
+
+describe('PATCH /api/master/product-types/:id/status', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app)
+      .patch('/api/master/product-types/1/status')
+      .send({ isActive: false })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for manager', async () => {
+    const res = await request(app)
+      .patch('/api/master/product-types/1/status')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when isActive is missing', async () => {
+    const res = await request(app)
+      .patch('/api/master/product-types/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when not found', async () => {
+    mockPTFindUnique.mockResolvedValue(null)
+    const res = await request(app)
+      .patch('/api/master/product-types/999/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(404)
+  })
+
+  it('deactivates product type', async () => {
+    mockPTFindUnique.mockResolvedValue(MOCK_PT)
+    mockPTUpdate.mockResolvedValue({ ...MOCK_PT, isActive: false })
+    const res = await request(app)
+      .patch('/api/master/product-types/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(false)
+  })
+
+  it('activates product type', async () => {
+    mockPTFindUnique.mockResolvedValue({ ...MOCK_PT, isActive: false })
+    mockPTUpdate.mockResolvedValue(MOCK_PT)
+    const res = await request(app)
+      .patch('/api/master/product-types/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: true })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(true)
+  })
+})
+
+// ─── GET /api/master/units?status ─────────────────────────────────────────
+
+describe('GET /api/master/units?status', () => {
+  it('filters active by default (no status param)', async () => {
+    mockUnitFindMany.mockResolvedValue([MOCK_UNIT])
+    await request(app).get('/api/master/units').set('Authorization', `Bearer ${adminToken}`)
+    expect(mockUnitFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isActive: true } })
+    )
+  })
+
+  it('returns all when status=all', async () => {
+    mockUnitFindMany.mockResolvedValue([MOCK_UNIT])
+    await request(app)
+      .get('/api/master/units?status=all')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(mockUnitFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }))
+  })
+})
+
+// ─── PATCH /api/master/units/:id/status ───────────────────────────────────
+
+describe('PATCH /api/master/units/:id/status', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).patch('/api/master/units/1/status').send({ isActive: false })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for staff', async () => {
+    const res = await request(app)
+      .patch('/api/master/units/1/status')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when isActive is missing', async () => {
+    const res = await request(app)
+      .patch('/api/master/units/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when not found', async () => {
+    mockUnitFindUnique.mockResolvedValue(null)
+    const res = await request(app)
+      .patch('/api/master/units/999/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(404)
+  })
+
+  it('deactivates unit', async () => {
+    mockUnitFindUnique.mockResolvedValue(MOCK_UNIT)
+    mockUnitUpdate.mockResolvedValue({ ...MOCK_UNIT, isActive: false })
+    const res = await request(app)
+      .patch('/api/master/units/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(false)
+  })
+
+  it('activates unit', async () => {
+    mockUnitFindUnique.mockResolvedValue({ ...MOCK_UNIT, isActive: false })
+    mockUnitUpdate.mockResolvedValue(MOCK_UNIT)
+    const res = await request(app)
+      .patch('/api/master/units/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: true })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(true)
   })
 })

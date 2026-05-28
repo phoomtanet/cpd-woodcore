@@ -75,6 +75,10 @@ export const StockService = {
     })
   },
 
+  async getLowAlert() {
+    return StockRepository.findLowStock()
+  },
+
   async getStockCard(productId: number) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')

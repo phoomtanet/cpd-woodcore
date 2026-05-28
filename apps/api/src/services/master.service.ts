@@ -3,8 +3,8 @@ import { ConflictError, NotFoundError } from '../utils/errors'
 
 export const MasterService = {
   // Product Types
-  findAllProductTypes() {
-    return MasterRepository.findAllProductTypes()
+  findAllProductTypes(status: 'active' | 'all' = 'active') {
+    return MasterRepository.findAllProductTypes(status)
   },
 
   async createProductType(data: { name: string; label: string }) {
@@ -23,6 +23,12 @@ export const MasterService = {
     return MasterRepository.updateProductType(id, data)
   },
 
+  async toggleProductTypeStatus(id: number, isActive: boolean) {
+    const item = await MasterRepository.findProductTypeById(id)
+    if (!item) throw new NotFoundError('Product type not found')
+    return MasterRepository.updateProductTypeStatus(id, isActive)
+  },
+
   async deleteProductTypeById(id: number) {
     const item = await MasterRepository.findProductTypeById(id)
     if (!item) throw new NotFoundError('Product type not found')
@@ -30,8 +36,8 @@ export const MasterService = {
   },
 
   // Units
-  findAllUnits() {
-    return MasterRepository.findAllUnits()
+  findAllUnits(status: 'active' | 'all' = 'active') {
+    return MasterRepository.findAllUnits(status)
   },
 
   async createUnit(data: { name: string }) {
@@ -48,6 +54,12 @@ export const MasterService = {
       if (conflict) throw new ConflictError('Unit name already exists')
     }
     return MasterRepository.updateUnit(id, data)
+  },
+
+  async toggleUnitStatus(id: number, isActive: boolean) {
+    const item = await MasterRepository.findUnitById(id)
+    if (!item) throw new NotFoundError('Unit not found')
+    return MasterRepository.updateUnitStatus(id, isActive)
   },
 
   async deleteUnitById(id: number) {

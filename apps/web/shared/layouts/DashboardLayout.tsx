@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Layout, Menu, theme, Typography, Avatar, Dropdown, Space } from 'antd'
+import { Layout, Menu, theme, Typography, Avatar, Dropdown, Space, Badge } from 'antd'
 import {
   DashboardOutlined,
   AppstoreOutlined,
@@ -24,6 +24,8 @@ import { usePermissionStore } from '@/store/permissionStore'
 import { useRolesStore } from '@/store/rolesStore'
 import { useMasterStore } from '@/store/masterStore'
 import { masterApi } from '@/modules/master/services/masterApi'
+import { stockApi } from '@/modules/stock/services/stockApi'
+import { useAlertsStore } from '@/store/alertsStore'
 
 const { Sider, Header, Content, Footer } = Layout
 
@@ -127,6 +129,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { clearPermissions, canView } = usePermissionStore()
   const { clearRoles, getLabelByName } = useRolesStore()
   const { productTypes, units, setProductTypes, setUnits, clearMaster } = useMasterStore()
+  const { lowStockCount, setLowStockCount, clearAlerts } = useAlertsStore()
 
   useEffect(() => {
     if (productTypes.length === 0 || units.length === 0) {
@@ -139,12 +142,28 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [productTypes.length, units.length, setProductTypes, setUnits])
 
+  useEffect(() => {
+    stockApi
+      .getLowAlert()
+      .then((data) => setLowStockCount(data.length))
+      .catch(() => {})
+  }, [setLowStockCount])
+
   const visibleMenuItems = ALL_MENU_ITEMS.filter((item) => {
     if (isGroup(item)) return item.children.some((child) => canView(child.menuKey))
     return canView(item.menuKey)
   }).map((item) => {
     if (!isGroup(item)) {
-      return { key: item.key, icon: item.icon, label: item.label }
+      const label =
+        item.menuKey === 'alerts' && lowStockCount > 0 ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {item.label}
+            <Badge count={lowStockCount} size="small" />
+          </span>
+        ) : (
+          item.label
+        )
+      return { key: item.key, icon: item.icon, label }
     }
     return {
       key: item.key,
@@ -166,6 +185,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         clearPermissions()
         clearRoles()
         clearMaster()
+        clearAlerts()
         router.push(ROUTES.LOGIN)
       },
     },

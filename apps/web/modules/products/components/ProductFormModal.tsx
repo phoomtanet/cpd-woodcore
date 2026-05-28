@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Form, Input, InputNumber, Select, Modal, App, Upload } from 'antd'
+import { Form, Input, InputNumber, Select, Switch, Modal, App, Upload } from 'antd'
 import { PictureOutlined, UploadOutlined } from '@ant-design/icons'
-import type { Product, CreateProductDto } from '../types'
+import type { Product, CreateProductDto, UpdateProductDto } from '../types'
 import { productsApi } from '../services/productsApi'
 import { useMasterStore } from '@/store/masterStore'
 
@@ -12,7 +12,7 @@ interface Props {
   editing: Product | null
   onClose: () => void
   onCreate: (dto: CreateProductDto) => Promise<Product>
-  onUpdate: (id: number, dto: Partial<CreateProductDto>) => Promise<Product>
+  onUpdate: (id: number, dto: UpdateProductDto) => Promise<Product>
   onImageUploaded?: (updated: Product) => void
 }
 
@@ -48,6 +48,7 @@ export default function ProductFormModal({
           costPrice: Number(editing.costPrice),
           salePrice: Number(editing.salePrice),
           minStock: editing.minStock,
+          isActive: editing.isActive,
         })
       }
     }
@@ -58,7 +59,7 @@ export default function ProductFormModal({
       const values = await form.validateFields()
       setLoading(true)
       if (isEdit && editing) {
-        await onUpdate(editing.id, values as Partial<CreateProductDto>)
+        await onUpdate(editing.id, values as UpdateProductDto)
         message.success('แก้ไขสินค้าสำเร็จ')
       } else {
         await onCreate(values as CreateProductDto)
@@ -191,6 +192,12 @@ export default function ProductFormModal({
         <Form.Item name="minStock" label="จำนวนขั้นต่ำ (สำหรับแจ้งเตือน)">
           <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
         </Form.Item>
+
+        {isEdit && (
+          <Form.Item name="isActive" label="สถานะ" valuePropName="checked">
+            <Switch checkedChildren="ใช้งาน" unCheckedChildren="ปิด" />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   )

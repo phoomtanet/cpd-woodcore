@@ -39,3 +39,32 @@ export interface StockTransferDto {
   toLocation: string
   note?: string
 }
+
+export interface StockCardRow extends StockTransaction {
+  balance: number
+  createdBy: { id: number; name: string }
+}
+
+export interface LowStockProduct {
+  id: number
+  name: string
+  sku: string
+  productType: string
+  unit: string
+  currentStock: number
+  minStock: number
+  barcode?: string | null
+  category?: string | null
+}
+
+export interface StockCardData {
+  product: {
+    id: number
+    name: string
+    sku: string
+    unit: string
+    currentStock: number
+    minStock: number
+  }
+  transactions: StockCardRow[]
+}

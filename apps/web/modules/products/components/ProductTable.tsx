@@ -108,6 +108,14 @@ export default function ProductTable({
         <StockBadge current={record.currentStock} min={record.minStock} />
       ),
     },
+    {
+      title: 'สถานะ',
+      key: 'isActive',
+      width: 110,
+      align: 'center',
+      render: (_: unknown, record: Product) =>
+        record.isActive ? <Tag color="success">ใช้งาน</Tag> : <Tag color="default">ไม่ใช้งาน</Tag>,
+    },
   ]
 
   if (canUpdate || canDelete) {
@@ -145,6 +153,7 @@ export default function ProductTable({
       loading={loading}
       pagination={{ pageSize: 10, showTotal: (total: number) => `ทั้งหมด ${total} รายการ` }}
       size="small"
+      scroll={{ x: 'max-content' }}
     />
   )
 }

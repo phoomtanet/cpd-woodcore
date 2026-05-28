@@ -49,6 +49,12 @@ export const ProductService = {
     return ProductRepository.update(id, { image: imageUrl })
   },
 
+  async toggleStatus(id: number, isActive: boolean) {
+    const product = await ProductRepository.findById(id)
+    if (!product) throw new NotFoundError('Product not found')
+    return ProductRepository.updateStatus(id, isActive)
+  },
+
   async deleteById(id: number) {
     const product = await ProductRepository.findById(id)
     if (!product) throw new NotFoundError('Product not found')

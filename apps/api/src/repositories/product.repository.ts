@@ -4,13 +4,16 @@ import type { Prisma } from '@prisma/client'
 export interface ProductFilter {
   search?: string
   productType?: string
+  status?: 'active' | 'inactive' | 'all'
 }
 
 export const ProductRepository = {
-  findAll({ search, productType }: ProductFilter = {}) {
+  findAll({ search, productType, status = 'all' }: ProductFilter = {}) {
+    const isActiveFilter = status === 'active' ? true : status === 'inactive' ? false : undefined
     return prisma.product.findMany({
       where: {
         deletedAt: null,
+        ...(isActiveFilter !== undefined && { isActive: isActiveFilter }),
         ...(productType && { productType }),
         ...(search && {
           OR: [
@@ -38,6 +41,10 @@ export const ProductRepository = {
 
   update(id: number, data: Prisma.ProductUpdateInput) {
     return prisma.product.update({ where: { id }, data })
+  },
+
+  updateStatus(id: number, isActive: boolean) {
+    return prisma.product.update({ where: { id }, data: { isActive } })
   },
 
   deleteById(id: number) {

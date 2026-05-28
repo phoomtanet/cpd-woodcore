@@ -2,8 +2,11 @@ import prisma from '@cpd/db'
 
 export const MasterRepository = {
   // Product Types
-  findAllProductTypes() {
-    return prisma.productTypeItem.findMany({ orderBy: { id: 'asc' } })
+  findAllProductTypes(status: 'active' | 'all' = 'active') {
+    return prisma.productTypeItem.findMany({
+      where: status === 'active' ? { isActive: true } : {},
+      orderBy: { id: 'asc' },
+    })
   },
 
   findProductTypeById(id: number) {
@@ -22,13 +25,20 @@ export const MasterRepository = {
     return prisma.productTypeItem.update({ where: { id }, data })
   },
 
+  updateProductTypeStatus(id: number, isActive: boolean) {
+    return prisma.productTypeItem.update({ where: { id }, data: { isActive } })
+  },
+
   deleteProductTypeById(id: number) {
     return prisma.productTypeItem.delete({ where: { id } })
   },
 
   // Units
-  findAllUnits() {
-    return prisma.unit.findMany({ orderBy: { id: 'asc' } })
+  findAllUnits(status: 'active' | 'all' = 'active') {
+    return prisma.unit.findMany({
+      where: status === 'active' ? { isActive: true } : {},
+      orderBy: { id: 'asc' },
+    })
   },
 
   findUnitById(id: number) {
@@ -45,6 +55,10 @@ export const MasterRepository = {
 
   updateUnit(id: number, data: { name: string }) {
     return prisma.unit.update({ where: { id }, data })
+  },
+
+  updateUnitStatus(id: number, isActive: boolean) {
+    return prisma.unit.update({ where: { id }, data: { isActive } })
   },
 
   deleteUnitById(id: number) {

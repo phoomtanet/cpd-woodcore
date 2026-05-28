@@ -16,6 +16,7 @@ const productTypeUpdateSchema = productTypeSchema.partial()
 const unitSchema = z.object({
   name: z.string({ error: 'Required' }).min(1),
 })
+const statusSchema = z.object({ isActive: z.boolean({ error: 'Required' }) })
 
 // Product Types
 router.get('/product-types', authenticate, MasterController.listProductTypes)
@@ -32,6 +33,13 @@ router.put(
   requireRole('admin'),
   validate(productTypeUpdateSchema),
   MasterController.updateProductType
+)
+router.patch(
+  '/product-types/:id/status',
+  authenticate,
+  requireRole('admin'),
+  validate(statusSchema),
+  MasterController.updateProductTypeStatus
 )
 router.delete(
   '/product-types/:id',
@@ -55,6 +63,13 @@ router.put(
   requireRole('admin'),
   validate(unitSchema),
   MasterController.updateUnit
+)
+router.patch(
+  '/units/:id/status',
+  authenticate,
+  requireRole('admin'),
+  validate(statusSchema),
+  MasterController.updateUnitStatus
 )
 router.delete('/units/:id', authenticate, requireRole('admin'), MasterController.removeUnit)
 

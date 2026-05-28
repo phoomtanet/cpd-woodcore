@@ -27,6 +27,7 @@ import prisma from '@cpd/db'
 const mockFindFirst = prisma.product.findFirst as jest.Mock
 const mockTransaction = prisma.$transaction as jest.Mock
 const mockFindMany = prisma.stockTransaction.findMany as jest.Mock
+const mockQueryRaw = prisma.$queryRaw as jest.Mock
 
 const MOCK_PRODUCT = {
   id: 1,
@@ -158,6 +159,14 @@ describe('POST /api/stock/in', () => {
       .send({ productId: 1, quantity: 10 })
     expect(mockTransaction).toHaveBeenCalledTimes(1)
   })
+
+  it('returns 400 when quantity is not an integer', async () => {
+    const res = await request(app)
+      .post('/api/stock/in')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 1.5 })
+    expect(res.status).toBe(400)
+  })
 })
 
 // ─── POST /api/stock/out ───────────────────────────────────────────────────
@@ -244,6 +253,24 @@ describe('POST /api/stock/out', () => {
       .send({ productId: 1, quantity: 3 })
     expect(mockTransaction).toHaveBeenCalledTimes(1)
   })
+
+  it('returns 201 for admin', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 7 }, MOCK_OUT_TX])
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ productId: 1, quantity: 3 })
+    expect(res.status).toBe(201)
+  })
+
+  it('returns 400 when quantity is not an integer', async () => {
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 2.5 })
+    expect(res.status).toBe(400)
+  })
 })
 
 // ─── POST /api/stock/adjust ───────────────────────────────────────────────
@@ -326,6 +353,14 @@ describe('POST /api/stock/adjust', () => {
       .send({ productId: 1, quantity: 20, reason: 'นับสต๊อกจริง', note: 'ตรวจนับประจำปี' })
     expect(res.status).toBe(201)
     expect(res.body.data.reason).toBe('นับสต๊อกจริง')
+  })
+
+  it('returns 400 when quantity is not an integer', async () => {
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 10.5 })
+    expect(res.status).toBe(400)
   })
 })
 
@@ -418,6 +453,57 @@ describe('POST /api/stock/transfer', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
     expect(res.status).toBe(201)
+  })
+
+  it('returns 201 when transfer quantity equals currentStock (exact)', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 5 })
+    mockTransaction.mockResolvedValue([MOCK_TRANSFER_TX])
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(201)
+  })
+
+  it('returns 400 when fromLocation is empty string', async () => {
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 5, fromLocation: '', toLocation: 'คลัง B' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when toLocation is empty string', async () => {
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 5, fromLocation: 'คลัง A', toLocation: '' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when quantity is not an integer', async () => {
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 3.7, fromLocation: 'คลัง A', toLocation: 'คลัง B' })
+    expect(res.status).toBe(400)
+  })
+
+  it('preserves note in response', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockTransaction.mockResolvedValue([{ ...MOCK_TRANSFER_TX, note: 'ย้ายเพื่อผลิต' }])
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({
+        productId: 1,
+        quantity: 5,
+        fromLocation: 'คลัง A',
+        toLocation: 'คลัง B',
+        note: 'ย้ายเพื่อผลิต',
+      })
+    expect(res.status).toBe(201)
+    expect(res.body.data.note).toBe('ย้ายเพื่อผลิต')
   })
 })
 
@@ -521,6 +607,16 @@ describe('GET /api/stock/card/:productId', () => {
         .set('Authorization', `Bearer ${token}`)
       expect(res.status).toBe(200)
     }
+  })
+
+  it('includes createdBy name in each transaction', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([makeTx(1, 'in', 10)])
+    const res = await request(app)
+      .get('/api/stock/card/1')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data.transactions[0].createdBy.name).toBe('admin')
   })
 })
 
@@ -630,5 +726,119 @@ describe('GET /api/stock/history', () => {
         .set('Authorization', `Bearer ${token}`)
       expect(res.status).toBe(200)
     }
+  })
+
+  it('filters by type=out', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'out')])
+    const res = await request(app)
+      .get('/api/stock/history?type=out')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data[0].type).toBe('out')
+  })
+
+  it('filters by type=adjust', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'adjust')])
+    const res = await request(app)
+      .get('/api/stock/history?type=adjust')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data[0].type).toBe('adjust')
+  })
+
+  it('filters by type=transfer', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'transfer')])
+    const res = await request(app)
+      .get('/api/stock/history?type=transfer')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data[0].type).toBe('transfer')
+  })
+
+  it('returns empty array when no transactions match filter', async () => {
+    mockFindMany.mockResolvedValue([])
+    const res = await request(app)
+      .get('/api/stock/history?type=in&productId=999')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(0)
+  })
+
+  it('filters by productId combined with type', async () => {
+    mockFindMany.mockResolvedValue([makeTx(1, 'in')])
+    const res = await request(app)
+      .get('/api/stock/history?productId=1&type=in')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+  })
+})
+
+// ─── GET /api/stock/low-alert ─────────────────────────────────────────────
+
+describe('GET /api/stock/low-alert', () => {
+  const LOW_PRODUCT = { ...MOCK_PRODUCT, currentStock: 2, minStock: 10 }
+  const OK_PRODUCT = { ...MOCK_PRODUCT, id: 2, currentStock: 15, minStock: 10 }
+
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/stock/low-alert')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 200 with low stock products for staff', async () => {
+    mockQueryRaw.mockResolvedValue([LOW_PRODUCT])
+    const res = await request(app)
+      .get('/api/stock/low-alert')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+    expect(res.body.data[0].currentStock).toBe(2)
+    expect(res.body.data[0].minStock).toBe(10)
+  })
+
+  it('returns 200 for manager', async () => {
+    mockQueryRaw.mockResolvedValue([LOW_PRODUCT])
+    const res = await request(app)
+      .get('/api/stock/low-alert')
+      .set('Authorization', `Bearer ${managerToken}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('returns 200 for admin', async () => {
+    mockQueryRaw.mockResolvedValue([LOW_PRODUCT])
+    const res = await request(app)
+      .get('/api/stock/low-alert')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('returns empty array when all products are above minStock', async () => {
+    mockQueryRaw.mockResolvedValue([])
+    const res = await request(app)
+      .get('/api/stock/low-alert')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(0)
+  })
+
+  it('returns multiple low stock products sorted by shortage desc', async () => {
+    const criticalProduct = { ...MOCK_PRODUCT, id: 3, currentStock: 0, minStock: 10 }
+    mockQueryRaw.mockResolvedValue([criticalProduct, LOW_PRODUCT])
+    const res = await request(app)
+      .get('/api/stock/low-alert')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(2)
+    expect(res.body.data[0].currentStock).toBe(0)
+  })
+
+  it('does not include ok_product in response (only low-stock products)', async () => {
+    mockQueryRaw.mockResolvedValue([LOW_PRODUCT])
+    const res = await request(app)
+      .get('/api/stock/low-alert')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    const ids = res.body.data.map((p: { id: number }) => p.id)
+    expect(ids).not.toContain(OK_PRODUCT.id)
   })
 })

@@ -21,6 +21,7 @@ const createProductSchema = z.object({
 })
 
 const updateProductSchema = createProductSchema.partial()
+const statusSchema = z.object({ isActive: z.boolean({ error: 'Required' }) })
 
 router.get('/', authenticate, requireRole('manager', 'admin'), ProductController.list)
 router.get('/:id', authenticate, requireRole('manager', 'admin'), ProductController.show)
@@ -37,6 +38,13 @@ router.put(
   requireRole('manager', 'admin'),
   validate(updateProductSchema),
   ProductController.update
+)
+router.patch(
+  '/:id/status',
+  authenticate,
+  requireRole('manager', 'admin'),
+  validate(statusSchema),
+  ProductController.updateStatus
 )
 router.delete('/:id', authenticate, requireRole('admin'), ProductController.remove)
 

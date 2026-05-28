@@ -75,6 +75,7 @@ router.get(
   StockController.stockHistory
 )
 router.get('/card/:productId', authenticate, StockController.stockCard)
+router.get('/low-alert', authenticate, StockController.stockLowAlert)
 
 router.post(
   '/adjust',

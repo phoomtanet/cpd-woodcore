@@ -2,8 +2,10 @@ import api from '@/services/api'
 import type { ApiResponse, ProductTypeItem, UnitItem } from '@/types'
 
 export const masterApi = {
-  getProductTypes: () =>
-    api.get<ApiResponse<ProductTypeItem[]>>('/master/product-types').then((r) => r.data.data),
+  getProductTypes: (status: 'active' | 'all' = 'active') =>
+    api
+      .get<ApiResponse<ProductTypeItem[]>>(`/master/product-types?status=${status}`)
+      .then((r) => r.data.data),
 
   createProductType: (dto: { name: string; label: string }) =>
     api.post<ApiResponse<ProductTypeItem>>('/master/product-types', dto).then((r) => r.data.data),
@@ -13,15 +15,26 @@ export const masterApi = {
       .put<ApiResponse<ProductTypeItem>>(`/master/product-types/${id}`, dto)
       .then((r) => r.data.data),
 
+  toggleProductTypeStatus: (id: number, isActive: boolean) =>
+    api
+      .patch<ApiResponse<ProductTypeItem>>(`/master/product-types/${id}/status`, { isActive })
+      .then((r) => r.data.data),
+
   deleteProductType: (id: number) => api.delete(`/master/product-types/${id}`),
 
-  getUnits: () => api.get<ApiResponse<UnitItem[]>>('/master/units').then((r) => r.data.data),
+  getUnits: (status: 'active' | 'all' = 'active') =>
+    api.get<ApiResponse<UnitItem[]>>(`/master/units?status=${status}`).then((r) => r.data.data),
 
   createUnit: (dto: { name: string }) =>
     api.post<ApiResponse<UnitItem>>('/master/units', dto).then((r) => r.data.data),
 
   updateUnit: (id: number, dto: { name: string }) =>
     api.put<ApiResponse<UnitItem>>(`/master/units/${id}`, dto).then((r) => r.data.data),
+
+  toggleUnitStatus: (id: number, isActive: boolean) =>
+    api
+      .patch<ApiResponse<UnitItem>>(`/master/units/${id}/status`, { isActive })
+      .then((r) => r.data.data),
 
   deleteUnit: (id: number) => api.delete(`/master/units/${id}`),
 }

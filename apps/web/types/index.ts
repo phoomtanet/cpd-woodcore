@@ -37,11 +37,13 @@ export interface ProductTypeItem {
   id: number
   name: string
   label: string
+  isActive: boolean
 }
 
 export interface UnitItem {
   id: number
   name: string
+  isActive: boolean
 }
 
 export interface RolePermission {

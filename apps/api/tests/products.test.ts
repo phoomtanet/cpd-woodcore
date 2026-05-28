@@ -403,3 +403,107 @@ describe('DELETE /api/products/:id', () => {
     expect(res.status).toBe(404)
   })
 })
+
+// ─── GET /api/products?status ──────────────────────────────────────────────
+
+describe('GET /api/products?status', () => {
+  it('filters by status=active', async () => {
+    mockFindMany.mockResolvedValue([])
+    await request(app)
+      .get('/api/products?status=active')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ isActive: true }) })
+    )
+  })
+
+  it('filters by status=inactive', async () => {
+    mockFindMany.mockResolvedValue([])
+    await request(app)
+      .get('/api/products?status=inactive')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ isActive: false }) })
+    )
+  })
+
+  it('does not filter isActive when status=all', async () => {
+    mockFindMany.mockResolvedValue([])
+    await request(app).get('/api/products?status=all').set('Authorization', `Bearer ${adminToken}`)
+    const call = mockFindMany.mock.calls[0][0]
+    expect(call.where).not.toHaveProperty('isActive')
+  })
+
+  it('does not filter isActive when status is invalid', async () => {
+    mockFindMany.mockResolvedValue([])
+    await request(app)
+      .get('/api/products?status=unknown')
+      .set('Authorization', `Bearer ${adminToken}`)
+    const call = mockFindMany.mock.calls[0][0]
+    expect(call.where).not.toHaveProperty('isActive')
+  })
+})
+
+// ─── PATCH /api/products/:id/status ───────────────────────────────────────
+
+describe('PATCH /api/products/:id/status', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).patch('/api/products/1/status').send({ isActive: false })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for staff', async () => {
+    const res = await request(app)
+      .patch('/api/products/1/status')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when isActive is missing', async () => {
+    const res = await request(app)
+      .patch('/api/products/1/status')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when isActive is not boolean', async () => {
+    const res = await request(app)
+      .patch('/api/products/1/status')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ isActive: 'yes' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when product not found', async () => {
+    mockFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .patch('/api/products/999/status')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(404)
+  })
+
+  it('deactivates product (manager)', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockUpdate.mockResolvedValue({ ...MOCK_PRODUCT, isActive: false })
+    const res = await request(app)
+      .patch('/api/products/1/status')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(false)
+  })
+
+  it('activates product (admin)', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, isActive: false })
+    mockUpdate.mockResolvedValue({ ...MOCK_PRODUCT, isActive: true })
+    const res = await request(app)
+      .patch('/api/products/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: true })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(true)
+  })
+})

@@ -6,6 +6,8 @@ import type {
   StockOutDto,
   StockAdjustDto,
   StockTransferDto,
+  StockCardData,
+  LowStockProduct,
 } from '../types'
 
 export const stockApi = {
@@ -25,11 +27,8 @@ export const stockApi = {
     api.get<ApiResponse<StockTransaction[]>>('/stock/history', { params }).then((r) => r.data.data),
 
   getStockCard: (productId: number) =>
-    api
-      .get<
-        ApiResponse<{ product: unknown; transactions: (StockTransaction & { balance: number })[] }>
-      >(`/stock/card/${productId}`)
-      .then((r) => r.data.data),
+    api.get<ApiResponse<StockCardData>>(`/stock/card/${productId}`).then((r) => r.data.data),
 
-  getLowAlert: () => api.get<ApiResponse<unknown[]>>('/stock/low-alert').then((r) => r.data.data),
+  getLowAlert: () =>
+    api.get<ApiResponse<LowStockProduct[]>>('/stock/low-alert').then((r) => r.data.data),
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { productsApi } from '../services/productsApi'
-import type { Product } from '../types'
+import type { Product, UpdateProductDto } from '../types'
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -42,10 +42,14 @@ export function useProducts() {
     return product
   }
 
-  const updateProduct = async (id: number, dto: Parameters<typeof productsApi.update>[1]) => {
-    const updated = await productsApi.update(id, dto)
-    setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)))
-    return updated
+  const updateProduct = async (id: number, dto: UpdateProductDto) => {
+    const { isActive, ...rest } = dto
+    let result = await productsApi.update(id, rest)
+    if (isActive !== undefined) {
+      result = await productsApi.toggleStatus(id, isActive)
+    }
+    setProducts((prev) => prev.map((p) => (p.id === id ? result : p)))
+    return result
   }
 
   const removeProduct = async (id: number) => {

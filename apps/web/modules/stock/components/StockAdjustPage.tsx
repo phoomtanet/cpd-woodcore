@@ -17,7 +17,7 @@ function StockAdjustForm() {
 
   useEffect(() => {
     productsApi
-      .getAll()
+      .getAll({ status: 'active' })
       .then(setProducts)
       .catch(() => {})
   }, [])

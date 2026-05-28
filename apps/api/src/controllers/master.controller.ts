@@ -3,9 +3,10 @@ import { MasterService } from '../services/master.service'
 
 export const MasterController = {
   // Product Types
-  async listProductTypes(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async listProductTypes(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await MasterService.findAllProductTypes()
+      const status = req.query.status === 'all' ? 'all' : 'active'
+      const data = await MasterService.findAllProductTypes(status)
       res.json({ data, message: 'ok' })
     } catch (err) {
       next(err)
@@ -30,6 +31,18 @@ export const MasterController = {
     }
   },
 
+  async updateProductTypeStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.toggleProductTypeStatus(
+        Number(req.params.id),
+        req.body.isActive
+      )
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
   async removeProductType(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       await MasterService.deleteProductTypeById(Number(req.params.id))
@@ -40,9 +53,10 @@ export const MasterController = {
   },
 
   // Units
-  async listUnits(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async listUnits(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await MasterService.findAllUnits()
+      const status = req.query.status === 'all' ? 'all' : 'active'
+      const data = await MasterService.findAllUnits(status)
       res.json({ data, message: 'ok' })
     } catch (err) {
       next(err)
@@ -61,6 +75,15 @@ export const MasterController = {
   async updateUnit(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const item = await MasterService.updateUnit(Number(req.params.id), req.body)
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateUnitStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.toggleUnitStatus(Number(req.params.id), req.body.isActive)
       res.json({ data: item, message: 'ok' })
     } catch (err) {
       next(err)

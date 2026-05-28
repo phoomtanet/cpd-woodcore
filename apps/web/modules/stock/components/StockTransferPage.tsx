@@ -17,7 +17,7 @@ function StockTransferForm() {
 
   useEffect(() => {
     productsApi
-      .getAll()
+      .getAll({ status: 'active' })
       .then(setProducts)
       .catch(() => {})
   }, [])

@@ -78,6 +78,15 @@ export const StockController = {
     }
   },
 
+  async stockLowAlert(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const products = await StockService.getLowAlert()
+      res.json({ data: products, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
   async stockTransfer(req: Request, res: Response, next: NextFunction) {
     try {
       const { productId, quantity, fromLocation, toLocation, note } = req.body as {

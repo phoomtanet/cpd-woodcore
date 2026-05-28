@@ -13,6 +13,7 @@ export interface Product {
   salePrice: number
   minStock: number
   currentStock: number
+  isActive: boolean
   createdAt: string
   updatedAt: string
 }
@@ -27,4 +28,8 @@ export interface CreateProductDto {
   barcode?: string
   category?: string
   minStock?: number
+}
+
+export interface UpdateProductDto extends Partial<CreateProductDto> {
+  isActive?: boolean
 }

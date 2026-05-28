@@ -5,6 +5,7 @@ import type { Product, CreateProductDto } from '../types'
 export interface ProductFilter {
   search?: string
   productType?: string
+  status?: 'active' | 'inactive' | 'all'
 }
 
 export const productsApi = {
@@ -12,6 +13,7 @@ export const productsApi = {
     const params = new URLSearchParams()
     if (filter.search) params.set('search', filter.search)
     if (filter.productType) params.set('productType', filter.productType)
+    if (filter.status) params.set('status', filter.status)
     return api
       .get<ApiResponse<Product[]>>(`/products?${params.toString()}`)
       .then((r) => r.data.data)
@@ -25,6 +27,11 @@ export const productsApi = {
 
   update: (id: number, dto: Partial<CreateProductDto>) =>
     api.put<ApiResponse<Product>>(`/products/${id}`, dto).then((r) => r.data.data),
+
+  toggleStatus: (id: number, isActive: boolean) =>
+    api
+      .patch<ApiResponse<Product>>(`/products/${id}/status`, { isActive })
+      .then((r) => r.data.data),
 
   remove: (id: number) => api.delete(`/products/${id}`),
 

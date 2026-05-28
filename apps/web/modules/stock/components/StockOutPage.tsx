@@ -17,7 +17,7 @@ function StockOutForm() {
 
   useEffect(() => {
     productsApi
-      .getAll()
+      .getAll({ status: 'active' })
       .then(setProducts)
       .catch(() => {})
   }, [])

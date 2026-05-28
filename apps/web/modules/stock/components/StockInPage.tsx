@@ -17,7 +17,7 @@ function StockInForm() {
 
   useEffect(() => {
     productsApi
-      .getAll()
+      .getAll({ status: 'active' })
       .then(setProducts)
       .catch(() => {})
   }, [])

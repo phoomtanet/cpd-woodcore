@@ -50,6 +50,7 @@ model Product {
   salePrice    Decimal            @db.Decimal(12, 2)
   minStock     Int                @default(0)
   currentStock Int                @default(0)
+  isActive     Boolean            @default(true)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   deletedAt    DateTime?
@@ -71,14 +72,16 @@ model RolePermission {
 }
 
 model ProductTypeItem {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  label String
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  label    String
+  isActive Boolean @default(true)
 }
 
 model Unit {
-  id   Int    @id @default(autoincrement())
-  name String @unique
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  isActive Boolean @default(true)
 }
 
 model StockTransaction {

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { App, Button, Form, Input, Modal, Popconfirm, Space, Table, Tag } from 'antd'
+import { useState, useEffect, useCallback } from 'react'
+import { App, Button, Form, Input, Modal, Popconfirm, Space, Switch, Table, Tag } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import PageHeader from '@/shared/components/PageHeader'
 import RoleGuard from '@/shared/guards/RoleGuard'
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function MasterDataPage({ mode }: Props) {
-  const { productTypes, units, setProductTypes, setUnits } = useMasterStore()
+  const { setProductTypes, setUnits } = useMasterStore()
   const canCreateTypes = usePermissionStore((s) => s.canCreate('master-types'))
   const canUpdateTypes = usePermissionStore((s) => s.canUpdate('master-types'))
   const canDeleteTypes = usePermissionStore((s) => s.canDelete('master-types'))
@@ -23,6 +23,9 @@ export default function MasterDataPage({ mode }: Props) {
   const canUpdateUnits = usePermissionStore((s) => s.canUpdate('master-units'))
   const canDeleteUnits = usePermissionStore((s) => s.canDelete('master-units'))
   const { message } = App.useApp()
+
+  const [allProductTypes, setAllProductTypes] = useState<ProductTypeItem[]>([])
+  const [allUnits, setAllUnits] = useState<UnitItem[]>([])
 
   const [ptModal, setPtModal] = useState<{ open: boolean; editing: ProductTypeItem | null }>({
     open: false,
@@ -36,9 +39,33 @@ export default function MasterDataPage({ mode }: Props) {
   const [unitForm] = Form.useForm()
   const [loading, setLoading] = useState(false)
 
+  const syncMasterStore = useCallback(
+    (pts: ProductTypeItem[], us: UnitItem[]) => {
+      setProductTypes(pts.filter((p) => p.isActive))
+      setUnits(us.filter((u) => u.isActive))
+    },
+    [setProductTypes, setUnits]
+  )
+
+  const loadAll = useCallback(async () => {
+    const [pts, us] = await Promise.all([
+      masterApi.getProductTypes('all'),
+      masterApi.getUnits('all'),
+    ])
+    setAllProductTypes(pts)
+    setAllUnits(us)
+    syncMasterStore(pts, us)
+  }, [syncMasterStore])
+
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
+
+  // ─── Product Type handlers ────────────────────────────────────────────────
+
   const openPtModal = (editing: ProductTypeItem | null = null) => {
     ptForm.resetFields()
-    if (editing) ptForm.setFieldsValue(editing)
+    if (editing) ptForm.setFieldsValue({ ...editing })
     setPtModal({ open: true, editing })
   }
 
@@ -46,16 +73,19 @@ export default function MasterDataPage({ mode }: Props) {
     const values = await ptForm.validateFields()
     setLoading(true)
     try {
+      const { isActive, ...rest } = values
       if (ptModal.editing) {
-        const updated = await masterApi.updateProductType(ptModal.editing.id, values)
-        setProductTypes(productTypes.map((p) => (p.id === updated.id ? updated : p)))
+        await masterApi.updateProductType(ptModal.editing.id, rest)
+        if (isActive !== ptModal.editing.isActive) {
+          await masterApi.toggleProductTypeStatus(ptModal.editing.id, isActive)
+        }
         message.success('แก้ไขประเภทสำเร็จ')
       } else {
-        const created = await masterApi.createProductType(values)
-        setProductTypes([...productTypes, created])
+        await masterApi.createProductType(rest)
         message.success('เพิ่มประเภทสำเร็จ')
       }
       setPtModal({ open: false, editing: null })
+      await loadAll()
     } catch {
       message.error('เกิดข้อผิดพลาด')
     } finally {
@@ -66,16 +96,18 @@ export default function MasterDataPage({ mode }: Props) {
   const handlePtDelete = async (id: number) => {
     try {
       await masterApi.deleteProductType(id)
-      setProductTypes(productTypes.filter((p) => p.id !== id))
       message.success('ลบสำเร็จ')
+      await loadAll()
     } catch {
       message.error('เกิดข้อผิดพลาด')
     }
   }
 
+  // ─── Unit handlers ────────────────────────────────────────────────────────
+
   const openUnitModal = (editing: UnitItem | null = null) => {
     unitForm.resetFields()
-    if (editing) unitForm.setFieldsValue(editing)
+    if (editing) unitForm.setFieldsValue({ ...editing })
     setUnitModal({ open: true, editing })
   }
 
@@ -83,16 +115,19 @@ export default function MasterDataPage({ mode }: Props) {
     const values = await unitForm.validateFields()
     setLoading(true)
     try {
+      const { isActive, ...rest } = values
       if (unitModal.editing) {
-        const updated = await masterApi.updateUnit(unitModal.editing.id, values)
-        setUnits(units.map((u) => (u.id === updated.id ? updated : u)))
+        await masterApi.updateUnit(unitModal.editing.id, rest)
+        if (isActive !== unitModal.editing.isActive) {
+          await masterApi.toggleUnitStatus(unitModal.editing.id, isActive)
+        }
         message.success('แก้ไขหน่วยสำเร็จ')
       } else {
-        const created = await masterApi.createUnit(values)
-        setUnits([...units, created])
+        await masterApi.createUnit(rest)
         message.success('เพิ่มหน่วยสำเร็จ')
       }
       setUnitModal({ open: false, editing: null })
+      await loadAll()
     } catch {
       message.error('เกิดข้อผิดพลาด')
     } finally {
@@ -103,16 +138,25 @@ export default function MasterDataPage({ mode }: Props) {
   const handleUnitDelete = async (id: number) => {
     try {
       await masterApi.deleteUnit(id)
-      setUnits(units.filter((u) => u.id !== id))
       message.success('ลบสำเร็จ')
+      await loadAll()
     } catch {
       message.error('เกิดข้อผิดพลาด')
     }
   }
 
+  // ─── Columns ──────────────────────────────────────────────────────────────
+
   const ptColumns = [
     { title: 'ชื่อ (name)', dataIndex: 'name', key: 'name', render: (v: string) => <Tag>{v}</Tag> },
     { title: 'ป้ายกำกับ (label)', dataIndex: 'label', key: 'label' },
+    {
+      title: 'สถานะ',
+      key: 'isActive',
+      width: 110,
+      render: (_: unknown, record: ProductTypeItem) =>
+        record.isActive ? <Tag color="success">ใช้งาน</Tag> : <Tag color="default">ไม่ใช้งาน</Tag>,
+    },
     ...(canUpdateTypes || canDeleteTypes
       ? [
           {
@@ -142,6 +186,13 @@ export default function MasterDataPage({ mode }: Props) {
 
   const unitColumns = [
     { title: 'หน่วย', dataIndex: 'name', key: 'name' },
+    {
+      title: 'สถานะ',
+      key: 'isActive',
+      width: 110,
+      render: (_: unknown, record: UnitItem) =>
+        record.isActive ? <Tag color="success">ใช้งาน</Tag> : <Tag color="default">ไม่ใช้งาน</Tag>,
+    },
     ...(canUpdateUnits || canDeleteUnits
       ? [
           {
@@ -183,11 +234,12 @@ export default function MasterDataPage({ mode }: Props) {
               </div>
             )}
             <Table
-              dataSource={productTypes}
+              dataSource={allProductTypes}
               columns={ptColumns}
               rowKey="id"
               size="small"
               pagination={false}
+              scroll={{ x: 'max-content' }}
             />
             <Modal
               open={ptModal.open}
@@ -214,6 +266,11 @@ export default function MasterDataPage({ mode }: Props) {
                 >
                   <Input placeholder="เช่น วัตถุดิบ, WIP, สำเร็จรูป" />
                 </Form.Item>
+                {ptModal.editing && (
+                  <Form.Item name="isActive" label="สถานะ" valuePropName="checked">
+                    <Switch checkedChildren="ใช้งาน" unCheckedChildren="ปิด" />
+                  </Form.Item>
+                )}
               </Form>
             </Modal>
           </>
@@ -228,11 +285,12 @@ export default function MasterDataPage({ mode }: Props) {
               </div>
             )}
             <Table
-              dataSource={units}
+              dataSource={allUnits}
               columns={unitColumns}
               rowKey="id"
               size="small"
               pagination={false}
+              scroll={{ x: 'max-content' }}
             />
             <Modal
               open={unitModal.open}
@@ -252,6 +310,11 @@ export default function MasterDataPage({ mode }: Props) {
                 >
                   <Input placeholder="เช่น แผ่น, ท่อน, กก." />
                 </Form.Item>
+                {unitModal.editing && (
+                  <Form.Item name="isActive" label="สถานะ" valuePropName="checked">
+                    <Switch checkedChildren="ใช้งาน" unCheckedChildren="ปิด" />
+                  </Form.Item>
+                )}
               </Form>
             </Modal>
           </>

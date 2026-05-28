@@ -4,10 +4,15 @@ import { ProductService } from '../services/product.service'
 export const ProductController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { search, productType } = req.query
+      const { search, productType, status } = req.query
+      const statusVal =
+        status === 'active' || status === 'inactive' || status === 'all'
+          ? (status as 'active' | 'inactive' | 'all')
+          : undefined
       const products = await ProductService.findAll({
         search: typeof search === 'string' ? search : undefined,
         productType: typeof productType === 'string' ? productType : undefined,
+        status: statusVal,
       })
       res.json({ data: products, message: 'ok' })
     } catch (err) {
@@ -50,6 +55,15 @@ export const ProductController = {
       }
       const imageUrl = `/uploads/products/${req.file.filename}`
       const product = await ProductService.updateImage(Number(req.params.id), imageUrl)
+      res.json({ data: product, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const product = await ProductService.toggleStatus(Number(req.params.id), req.body.isActive)
       res.json({ data: product, message: 'ok' })
     } catch (err) {
       next(err)
