@@ -41,8 +41,6 @@ function CategoriesContent() {
   }, [load])
 
   const openModal = (editing: CategoryItem | null = null) => {
-    form.resetFields()
-    if (editing) form.setFieldsValue({ ...editing })
     setModal({ open: true, editing })
   }
 
@@ -99,7 +97,7 @@ function CategoriesContent() {
     ...(canUpdate || canDelete
       ? [
           {
-            title: '',
+            title: 'จัดการ',
             key: 'actions',
             width: 100,
             render: (_: unknown, r: CategoryItem) => (
@@ -149,6 +147,12 @@ function CategoriesContent() {
         onCancel={() => setModal({ open: false, editing: null })}
         confirmLoading={loading}
         destroyOnHidden
+        afterOpenChange={(open: boolean) => {
+          if (open) {
+            form.resetFields()
+            if (modal.editing) form.setFieldsValue({ ...modal.editing })
+          }
+        }}
       >
         <Form form={form} layout="vertical">
           <Form.Item

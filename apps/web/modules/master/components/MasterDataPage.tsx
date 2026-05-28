@@ -51,8 +51,6 @@ function ProductTypesContent() {
   }, [load])
 
   const openModal = (editing: ProductTypeItem | null = null) => {
-    form.resetFields()
-    if (editing) form.setFieldsValue({ ...editing })
     setModal({ open: true, editing })
   }
 
@@ -110,7 +108,7 @@ function ProductTypesContent() {
     ...(canUpdate || canDelete
       ? [
           {
-            title: '',
+            title: 'จัดการ',
             key: 'actions',
             width: 100,
             render: (_: unknown, r: ProductTypeItem) => (
@@ -160,6 +158,12 @@ function ProductTypesContent() {
         onCancel={() => setModal({ open: false, editing: null })}
         confirmLoading={loading}
         destroyOnHidden
+        afterOpenChange={(open: boolean) => {
+          if (open) {
+            form.resetFields()
+            if (modal.editing) form.setFieldsValue({ ...modal.editing })
+          }
+        }}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -224,8 +228,6 @@ function UnitsContent() {
   }, [load])
 
   const openModal = (editing: UnitItem | null = null) => {
-    form.resetFields()
-    if (editing) form.setFieldsValue({ ...editing })
     setModal({ open: true, editing })
   }
 
@@ -281,7 +283,7 @@ function UnitsContent() {
     ...(canUpdate || canDelete
       ? [
           {
-            title: '',
+            title: 'จัดการ',
             key: 'actions',
             render: (_: unknown, r: UnitItem) => (
               <Space>
@@ -330,6 +332,12 @@ function UnitsContent() {
         onCancel={() => setModal({ open: false, editing: null })}
         confirmLoading={loading}
         destroyOnHidden
+        afterOpenChange={(open: boolean) => {
+          if (open) {
+            form.resetFields()
+            if (modal.editing) form.setFieldsValue({ ...modal.editing })
+          }
+        }}
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="หน่วย" rules={[{ required: true, message: 'กรุณากรอก' }]}>

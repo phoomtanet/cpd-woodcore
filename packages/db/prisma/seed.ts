@@ -225,7 +225,7 @@ async function main() {
       const perm = DEFAULTS[roleName][menuKey]
       await prisma.rolePermission.upsert({
         where: { roleId_menuKey: { roleId, menuKey } },
-        update: {},
+        update: perm,
         create: { roleId, menuKey, ...perm },
       })
     }
