@@ -6,7 +6,8 @@ export interface Product {
   sku: string
   barcode?: string
   image?: string
-  category?: string
+  categoryId?: number
+  category?: { id: number; name: string; isActive: boolean }
   productType: ProductType
   unit: string
   costPrice: number
@@ -26,7 +27,7 @@ export interface CreateProductDto {
   costPrice: number
   salePrice: number
   barcode?: string
-  category?: string
+  categoryId?: number
   minStock?: number
 }
 

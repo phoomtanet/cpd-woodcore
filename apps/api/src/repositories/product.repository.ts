@@ -4,17 +4,19 @@ import type { Prisma } from '@prisma/client'
 export interface ProductFilter {
   search?: string
   productType?: string
+  categoryId?: number
   status?: 'active' | 'inactive' | 'all'
 }
 
 export const ProductRepository = {
-  findAll({ search, productType, status = 'all' }: ProductFilter = {}) {
+  findAll({ search, productType, categoryId, status = 'all' }: ProductFilter = {}) {
     const isActiveFilter = status === 'active' ? true : status === 'inactive' ? false : undefined
     return prisma.product.findMany({
       where: {
         deletedAt: null,
         ...(isActiveFilter !== undefined && { isActive: isActiveFilter }),
         ...(productType && { productType }),
+        ...(categoryId && { categoryId }),
         ...(search && {
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
@@ -23,12 +25,16 @@ export const ProductRepository = {
           ],
         }),
       },
+      include: { category: true },
       orderBy: { createdAt: 'desc' },
     })
   },
 
   findById(id: number) {
-    return prisma.product.findFirst({ where: { id, deletedAt: null } })
+    return prisma.product.findFirst({
+      where: { id, deletedAt: null },
+      include: { category: true },
+    })
   },
 
   findBySku(sku: string) {

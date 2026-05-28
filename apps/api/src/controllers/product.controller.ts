@@ -4,7 +4,7 @@ import { ProductService } from '../services/product.service'
 export const ProductController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { search, productType, status } = req.query
+      const { search, productType, categoryId, status } = req.query
       const statusVal =
         status === 'active' || status === 'inactive' || status === 'all'
           ? (status as 'active' | 'inactive' | 'all')
@@ -12,6 +12,7 @@ export const ProductController = {
       const products = await ProductService.findAll({
         search: typeof search === 'string' ? search : undefined,
         productType: typeof productType === 'string' ? productType : undefined,
+        categoryId: typeof categoryId === 'string' ? Number(categoryId) : undefined,
         status: statusVal,
       })
       res.json({ data: products, message: 'ok' })

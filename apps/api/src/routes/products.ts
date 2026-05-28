@@ -16,7 +16,7 @@ const createProductSchema = z.object({
   costPrice: z.number({ error: 'Required' }).nonnegative(),
   salePrice: z.number({ error: 'Required' }).nonnegative(),
   barcode: z.string().optional(),
-  category: z.string().optional(),
+  categoryId: z.number().int().optional(),
   minStock: z.number().int().nonnegative().default(0),
 })
 

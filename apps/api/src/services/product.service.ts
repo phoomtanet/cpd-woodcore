@@ -10,7 +10,7 @@ export interface CreateProductDto {
   costPrice: number
   salePrice: number
   barcode?: string
-  category?: string
+  categoryId?: number
   minStock?: number
 }
 

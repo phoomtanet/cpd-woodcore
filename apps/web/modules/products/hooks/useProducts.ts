@@ -11,6 +11,7 @@ export function useProducts() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [productType, setProductType] = useState<string | undefined>()
+  const [categoryId, setCategoryId] = useState<number | undefined>()
 
   const fetch = useCallback(async () => {
     setLoading(true)
@@ -19,6 +20,7 @@ export function useProducts() {
       const data = await productsApi.getAll({
         search: search || undefined,
         productType,
+        categoryId,
       })
       setProducts(data)
     } catch (err) {
@@ -30,7 +32,7 @@ export function useProducts() {
     } finally {
       setLoading(false)
     }
-  }, [search, productType])
+  }, [search, productType, categoryId])
 
   useEffect(() => {
     fetch()
@@ -66,6 +68,8 @@ export function useProducts() {
     setSearch,
     productType,
     setProductType,
+    categoryId,
+    setCategoryId,
     refetch: fetch,
     createProduct,
     updateProduct,

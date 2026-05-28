@@ -5,6 +5,7 @@ import type { Product, CreateProductDto } from '../types'
 export interface ProductFilter {
   search?: string
   productType?: string
+  categoryId?: number
   status?: 'active' | 'inactive' | 'all'
 }
 
@@ -13,6 +14,7 @@ export const productsApi = {
     const params = new URLSearchParams()
     if (filter.search) params.set('search', filter.search)
     if (filter.productType) params.set('productType', filter.productType)
+    if (filter.categoryId) params.set('categoryId', String(filter.categoryId))
     if (filter.status) params.set('status', filter.status)
     return api
       .get<ApiResponse<Product[]>>(`/products?${params.toString()}`)

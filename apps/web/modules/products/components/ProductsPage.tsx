@@ -21,15 +21,21 @@ export default function ProductsPage() {
     setSearch,
     productType,
     setProductType,
+    categoryId,
+    setCategoryId,
     createProduct,
     updateProduct,
     removeProduct,
     setProducts,
   } = useProducts()
-  const { productTypes } = useMasterStore()
+  const { productTypes, categories } = useMasterStore()
   const productTypeFilterOptions = [
     { value: '', label: 'ทุกประเภท' },
     ...productTypes.map((pt) => ({ value: pt.name, label: pt.label })),
+  ]
+  const categoryFilterOptions = [
+    { value: 0, label: 'ทุกหมวดหมู่' },
+    ...categories.map((c) => ({ value: c.id, label: c.name })),
   ]
 
   const canCreate = usePermissionStore((s) => s.canCreate('products'))
@@ -91,6 +97,12 @@ export default function ProductsPage() {
             onChange={(v: string) => setProductType(v || undefined)}
             style={{ width: 140 }}
             suffixIcon={<AppstoreOutlined />}
+          />
+          <Select
+            options={categoryFilterOptions}
+            value={categoryId ?? 0}
+            onChange={(v: number) => setCategoryId(v || undefined)}
+            style={{ width: 160 }}
           />
         </Space>
 
