@@ -4,6 +4,36 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
+  // Seed categories
+  const categories = ['พาเลท', 'ไม้แปรรูป', 'บรรจุภัณฑ์', 'วัตถุดิบ', 'อุปกรณ์', 'สินค้าสำเร็จรูป']
+  for (const name of categories) {
+    await prisma.category.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    })
+    console.log(`✓ Category: ${name}`)
+  }
+
+  // Seed SKU prefixes
+  const skuPrefixes = [
+    { prefix: 'PAL', label: 'พาเลท' },
+    { prefix: 'WD', label: 'ไม้' },
+    { prefix: 'PKG', label: 'บรรจุภัณฑ์' },
+    { prefix: 'RM', label: 'วัตถุดิบ' },
+    { prefix: 'WIP', label: 'งานระหว่างผลิต' },
+    { prefix: 'FG', label: 'สินค้าสำเร็จรูป' },
+    { prefix: 'TOOL', label: 'เครื่องมือ/อุปกรณ์' },
+  ]
+  for (const sp of skuPrefixes) {
+    await prisma.skuPrefix.upsert({
+      where: { prefix: sp.prefix },
+      update: { label: sp.label },
+      create: sp,
+    })
+    console.log(`✓ SkuPrefix: ${sp.prefix} (${sp.label})`)
+  }
+
   // Seed product type items
   const productTypeItems = [
     { name: 'raw', label: 'วัตถุดิบ' },
@@ -76,13 +106,18 @@ async function main() {
   })
   console.log(`✓ User: ${manager.email}`)
 
+  // Build categoryMap for product seed
+  const categoryMap: Record<string, number> = {}
+  const allCats = await prisma.category.findMany()
+  for (const c of allCats) categoryMap[c.name] = c.id
+
   // Sample products
   const products = [
     {
       name: 'ไม้ซุงยูคาลิปตัส',
       sku: 'RM-EUCALYPTUS-001',
       barcode: '8851234560001',
-      category: 'วัตถุดิบหลัก',
+      categoryId: categoryMap['วัตถุดิบ'] ?? null,
       productType: 'raw',
       unit: 'ท่อน',
       costPrice: 120.0,
@@ -93,7 +128,7 @@ async function main() {
       name: 'ไม้แปรรูป 2x4 นิ้ว',
       sku: 'RM-LUMBER-2X4',
       barcode: '8851234560002',
-      category: 'วัตถุดิบหลัก',
+      categoryId: categoryMap['ไม้แปรรูป'] ?? null,
       productType: 'raw',
       unit: 'แผ่น',
       costPrice: 45.0,
@@ -104,7 +139,7 @@ async function main() {
       name: 'ตะปูเหล็ก 3 นิ้ว',
       sku: 'RM-NAIL-3IN',
       barcode: '8851234560003',
-      category: 'อุปกรณ์',
+      categoryId: categoryMap['อุปกรณ์'] ?? null,
       productType: 'raw',
       unit: 'กิโลกรัม',
       costPrice: 55.0,
@@ -115,7 +150,7 @@ async function main() {
       name: 'ไม้พาเลทกึ่งสำเร็จ (ประกอบขา)',
       sku: 'WIP-PALLET-FRAME',
       barcode: '8851234560004',
-      category: 'งานระหว่างผลิต',
+      categoryId: null,
       productType: 'wip',
       unit: 'ชิ้น',
       costPrice: 85.0,
@@ -126,7 +161,7 @@ async function main() {
       name: 'พาเลทไม้มาตรฐาน 80×120 ซม.',
       sku: 'FG-PALLET-80X120',
       barcode: '8851234560005',
-      category: 'สินค้าสำเร็จรูป',
+      categoryId: categoryMap['พาเลท'] ?? null,
       productType: 'finished',
       unit: 'ชิ้น',
       costPrice: 180.0,
@@ -138,7 +173,7 @@ async function main() {
   for (const p of products) {
     const product = await prisma.product.upsert({
       where: { sku: p.sku },
-      update: {},
+      update: { categoryId: p.categoryId },
       create: p,
     })
     console.log(`✓ Product: [${product.productType}] ${product.name} (${product.sku})`)
