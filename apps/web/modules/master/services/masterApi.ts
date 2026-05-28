@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { ApiResponse, ProductTypeItem, UnitItem, CategoryItem, SkuPrefixItem } from '@/types'
+import type { ApiResponse, ProductTypeItem, UnitItem, CategoryItem } from '@/types'
 
 export const masterApi = {
   getProductTypes: (status: 'active' | 'all' = 'active') =>
@@ -55,22 +55,4 @@ export const masterApi = {
       .then((r) => r.data.data),
 
   deleteCategory: (id: number) => api.delete(`/master/categories/${id}`),
-
-  getSkuPrefixes: (status: 'active' | 'all' = 'active') =>
-    api
-      .get<ApiResponse<SkuPrefixItem[]>>(`/master/sku-prefixes?status=${status}`)
-      .then((r) => r.data.data),
-
-  createSkuPrefix: (dto: { prefix: string; label: string }) =>
-    api.post<ApiResponse<SkuPrefixItem>>('/master/sku-prefixes', dto).then((r) => r.data.data),
-
-  updateSkuPrefix: (id: number, dto: { prefix?: string; label?: string }) =>
-    api.put<ApiResponse<SkuPrefixItem>>(`/master/sku-prefixes/${id}`, dto).then((r) => r.data.data),
-
-  toggleSkuPrefixStatus: (id: number, isActive: boolean) =>
-    api
-      .patch<ApiResponse<SkuPrefixItem>>(`/master/sku-prefixes/${id}/status`, { isActive })
-      .then((r) => r.data.data),
-
-  deleteSkuPrefix: (id: number) => api.delete(`/master/sku-prefixes/${id}`),
 }

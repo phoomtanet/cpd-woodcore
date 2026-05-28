@@ -44,13 +44,6 @@ model Category {
   products Product[]
 }
 
-model SkuPrefix {
-  id       Int     @id @default(autoincrement())
-  prefix   String  @unique
-  label    String
-  isActive Boolean @default(true)
-}
-
 model Product {
   id           Int                @id @default(autoincrement())
   name         String

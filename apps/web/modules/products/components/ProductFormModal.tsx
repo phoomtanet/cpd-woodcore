@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Form, Input, InputNumber, Select, Switch, Modal, App, Upload, Space } from 'antd'
+import { Form, Input, InputNumber, Select, Switch, Modal, App, Upload } from 'antd'
 import { PictureOutlined, UploadOutlined } from '@ant-design/icons'
 import type { Product, CreateProductDto, UpdateProductDto } from '../types'
 import { productsApi } from '../services/productsApi'
@@ -27,11 +27,9 @@ export default function ProductFormModal({
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [skuPrefix, setSkuPrefix] = useState('')
-  const [skuNumber, setSkuNumber] = useState('')
   const { message } = App.useApp()
   const isEdit = !!editing
-  const { productTypes, units, categories, skuPrefixes } = useMasterStore()
+  const { productTypes, units, categories } = useMasterStore()
 
   const productTypeOptions = productTypes.map((pt) => ({ value: pt.name, label: pt.label }))
   const unitOptions = units.map((u) => ({ value: u.name, label: u.name }))
@@ -39,16 +37,10 @@ export default function ProductFormModal({
     { value: 0, label: '— ไม่ระบุ —' },
     ...categories.map((c) => ({ value: c.id, label: c.name })),
   ]
-  const skuPrefixOptions = skuPrefixes.map((p) => ({
-    value: p.prefix,
-    label: `${p.prefix} — ${p.label}`,
-  }))
 
   useEffect(() => {
     if (open) {
       form.resetFields()
-      setSkuPrefix('')
-      setSkuNumber('')
       if (editing) {
         form.setFieldsValue({
           name: editing.name,
@@ -66,29 +58,10 @@ export default function ProductFormModal({
     }
   }, [open, editing, form])
 
-  const composeSku = (prefix: string, num: string) => {
-    if (!prefix && !num) return ''
-    if (prefix && num) return `${prefix}-${num}`
-    if (prefix) return `${prefix}-`
-    return num
-  }
-
-  const handlePrefixChange = (val: string) => {
-    setSkuPrefix(val)
-    form.setFieldValue('sku', composeSku(val, skuNumber))
-  }
-
-  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setSkuNumber(val)
-    form.setFieldValue('sku', composeSku(skuPrefix, val))
-  }
-
   const handleOk = async () => {
     try {
       const values = await form.validateFields()
       setLoading(true)
-      // normalize categoryId: 0 means "no category"
       const categoryId = values.categoryId ? Number(values.categoryId) : undefined
       const dto = { ...values, categoryId }
       if (isEdit && editing) {
@@ -178,29 +151,8 @@ export default function ProductFormModal({
           <Input placeholder="ชื่อสินค้า" />
         </Form.Item>
 
-        {!isEdit && skuPrefixOptions.length > 0 && (
-          <Form.Item label="SKU Prefix (ตัวช่วยสร้าง SKU)" style={{ marginBottom: 8 }}>
-            <Space.Compact style={{ width: '100%' }}>
-              <Select
-                options={skuPrefixOptions}
-                placeholder="เลือก Prefix"
-                value={skuPrefix || undefined}
-                onChange={handlePrefixChange}
-                style={{ width: '55%' }}
-                allowClear
-              />
-              <Input
-                placeholder="เลขรันนิ่ง เช่น 001"
-                value={skuNumber}
-                onChange={handleNumberChange}
-                style={{ width: '45%' }}
-              />
-            </Space.Compact>
-          </Form.Item>
-        )}
-
         <Form.Item name="sku" label="SKU" rules={[{ required: true, message: 'กรุณากรอก SKU' }]}>
-          <Input placeholder="SKU" disabled={isEdit} />
+          <Input placeholder="เช่น RM-EUCALYPTUS-001, FG-PALLET-80X120" disabled={isEdit} />
         </Form.Item>
 
         <Form.Item

@@ -87,6 +87,7 @@ export const StockRepository = {
       SELECT * FROM "Product"
       WHERE "currentStock" < "minStock"
       AND "deletedAt" IS NULL
+      AND "isActive" = true
       ORDER BY ("minStock" - "currentStock") DESC
     `
   },

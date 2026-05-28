@@ -62,12 +62,6 @@ const ALL_MENU_ITEMS: MenuDef[] = [
         label: 'หมวดหมู่',
         menuKey: 'master-categories',
       },
-      {
-        key: ROUTES.SETTINGS_MASTER_SKU_PREFIXES,
-        icon: <AppstoreOutlined />,
-        label: 'SKU Prefix',
-        menuKey: 'master-sku-prefixes',
-      },
     ],
   },
   { key: ROUTES.PRODUCTS, icon: <AppstoreOutlined />, label: 'สินค้า', menuKey: 'products' },
@@ -140,37 +134,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, clearAuth } = useAuthStore()
   const { clearPermissions, canView } = usePermissionStore()
   const { clearRoles, getLabelByName } = useRolesStore()
-  const {
-    productTypes,
-    units,
-    categories,
-    skuPrefixes,
-    setProductTypes,
-    setUnits,
-    setCategories,
-    setSkuPrefixes,
-    clearMaster,
-  } = useMasterStore()
+  const { productTypes, units, categories, setProductTypes, setUnits, setCategories, clearMaster } =
+    useMasterStore()
   const { lowStockCount, setLowStockCount, clearAlerts } = useAlertsStore()
 
   useEffect(() => {
-    const needsLoad =
-      productTypes.length === 0 ||
-      units.length === 0 ||
-      categories.length === 0 ||
-      skuPrefixes.length === 0
+    const needsLoad = productTypes.length === 0 || units.length === 0 || categories.length === 0
     if (needsLoad) {
-      Promise.all([
-        masterApi.getProductTypes(),
-        masterApi.getUnits(),
-        masterApi.getCategories(),
-        masterApi.getSkuPrefixes(),
-      ])
-        .then(([pts, us, cats, prefixes]) => {
+      Promise.all([masterApi.getProductTypes(), masterApi.getUnits(), masterApi.getCategories()])
+        .then(([pts, us, cats]) => {
           setProductTypes(pts)
           setUnits(us)
           setCategories(cats)
-          setSkuPrefixes(prefixes)
         })
         .catch(() => {})
     }
@@ -178,11 +153,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     productTypes.length,
     units.length,
     categories.length,
-    skuPrefixes.length,
     setProductTypes,
     setUnits,
     setCategories,
-    setSkuPrefixes,
   ])
 
   useEffect(() => {

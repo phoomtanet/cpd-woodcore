@@ -52,13 +52,6 @@ export interface CategoryItem {
   isActive: boolean
 }
 
-export interface SkuPrefixItem {
-  id: number
-  prefix: string
-  label: string
-  isActive: boolean
-}
-
 export interface RolePermission {
   id: number
   role: Role

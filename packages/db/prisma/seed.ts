@@ -15,25 +15,6 @@ async function main() {
     console.log(`✓ Category: ${name}`)
   }
 
-  // Seed SKU prefixes
-  const skuPrefixes = [
-    { prefix: 'PAL', label: 'พาเลท' },
-    { prefix: 'WD', label: 'ไม้' },
-    { prefix: 'PKG', label: 'บรรจุภัณฑ์' },
-    { prefix: 'RM', label: 'วัตถุดิบ' },
-    { prefix: 'WIP', label: 'งานระหว่างผลิต' },
-    { prefix: 'FG', label: 'สินค้าสำเร็จรูป' },
-    { prefix: 'TOOL', label: 'เครื่องมือ/อุปกรณ์' },
-  ]
-  for (const sp of skuPrefixes) {
-    await prisma.skuPrefix.upsert({
-      where: { prefix: sp.prefix },
-      update: { label: sp.label },
-      create: sp,
-    })
-    console.log(`✓ SkuPrefix: ${sp.prefix} (${sp.label})`)
-  }
-
   // Seed product type items
   const productTypeItems = [
     { name: 'raw', label: 'วัตถุดิบ' },
@@ -198,7 +179,6 @@ async function main() {
     'master-types',
     'master-units',
     'master-categories',
-    'master-sku-prefixes',
   ]
 
   const DEFAULTS: Record<RoleKey, Record<string, PermDef>> = {
@@ -220,12 +200,6 @@ async function main() {
       'master-types': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
       'master-units': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
       'master-categories': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
-      'master-sku-prefixes': {
-        canView: true,
-        canCreate: false,
-        canUpdate: false,
-        canDelete: false,
-      },
     },
     staff: {
       dashboard: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
@@ -242,12 +216,6 @@ async function main() {
       'master-types': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-units': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-categories': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
-      'master-sku-prefixes': {
-        canView: false,
-        canCreate: false,
-        canUpdate: false,
-        canDelete: false,
-      },
     },
   }
 

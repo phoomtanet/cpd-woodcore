@@ -3,7 +3,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { productsApi } from '../services/productsApi'
+import { stockApi } from '@/modules/stock/services/stockApi'
+import { useAlertsStore } from '@/store/alertsStore'
 import type { Product, UpdateProductDto } from '../types'
+
+function syncAlerts() {
+  stockApi
+    .getLowAlert()
+    .then((data) => useAlertsStore.getState().setLowStockCount(data.length))
+    .catch(() => {})
+}
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -41,6 +50,7 @@ export function useProducts() {
   const createProduct = async (dto: Parameters<typeof productsApi.create>[0]) => {
     const product = await productsApi.create(dto)
     setProducts((prev) => [product, ...prev])
+    syncAlerts()
     return product
   }
 
@@ -51,12 +61,14 @@ export function useProducts() {
       result = await productsApi.toggleStatus(id, isActive)
     }
     setProducts((prev) => prev.map((p) => (p.id === id ? result : p)))
+    syncAlerts()
     return result
   }
 
   const removeProduct = async (id: number) => {
     await productsApi.remove(id)
     setProducts((prev) => prev.filter((p) => p.id !== id))
+    syncAlerts()
   }
 
   return {
