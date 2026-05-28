@@ -23,6 +23,8 @@ export default function ProductsPage() {
     setProductType,
     categoryId,
     setCategoryId,
+    status,
+    setStatus,
     createProduct,
     updateProduct,
     removeProduct,
@@ -103,6 +105,16 @@ export default function ProductsPage() {
             value={categoryId ?? 0}
             onChange={(v: number) => setCategoryId(v || undefined)}
             style={{ width: 160 }}
+          />
+          <Select
+            value={status}
+            onChange={(v: 'active' | 'inactive' | 'all') => setStatus(v)}
+            style={{ width: 140 }}
+            options={[
+              { value: 'active', label: 'ใช้งาน' },
+              { value: 'inactive', label: 'ไม่ใช้งาน' },
+              { value: 'all', label: 'ทั้งหมด' },
+            ]}
           />
         </Space>
 

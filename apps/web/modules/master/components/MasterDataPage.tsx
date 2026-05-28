@@ -277,6 +277,7 @@ function UnitsContent() {
     {
       title: 'สถานะ',
       key: 'isActive',
+      width: 110,
       render: (_: unknown, r: UnitItem) =>
         r.isActive ? <Tag color="success">ใช้งาน</Tag> : <Tag color="default">ไม่ใช้งาน</Tag>,
     },
@@ -285,6 +286,7 @@ function UnitsContent() {
           {
             title: 'จัดการ',
             key: 'actions',
+            width: 100,
             render: (_: unknown, r: UnitItem) => (
               <Space>
                 {canUpdate && (

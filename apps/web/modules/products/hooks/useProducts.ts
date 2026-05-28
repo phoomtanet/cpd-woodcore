@@ -13,6 +13,7 @@ export function useProducts() {
   const [search, setSearch] = useState('')
   const [productType, setProductType] = useState<string | undefined>()
   const [categoryId, setCategoryId] = useState<number | undefined>()
+  const [status, setStatus] = useState<'active' | 'inactive' | 'all'>('active')
 
   const fetch = useCallback(async () => {
     setLoading(true)
@@ -22,6 +23,7 @@ export function useProducts() {
         search: search || undefined,
         productType,
         categoryId,
+        status,
       })
       setProducts(data)
     } catch (err) {
@@ -33,7 +35,7 @@ export function useProducts() {
     } finally {
       setLoading(false)
     }
-  }, [search, productType, categoryId])
+  }, [search, productType, categoryId, status])
 
   useEffect(() => {
     fetch()
@@ -74,6 +76,8 @@ export function useProducts() {
     setProductType,
     categoryId,
     setCategoryId,
+    status,
+    setStatus,
     refetch: fetch,
     createProduct,
     updateProduct,

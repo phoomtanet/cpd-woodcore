@@ -9,7 +9,7 @@ export interface ProductFilter {
 }
 
 export const ProductRepository = {
-  findAll({ search, productType, categoryId, status = 'all' }: ProductFilter = {}) {
+  findAll({ search, productType, categoryId, status = 'active' }: ProductFilter = {}) {
     const isActiveFilter = status === 'active' ? true : status === 'inactive' ? false : undefined
     return prisma.product.findMany({
       where: {

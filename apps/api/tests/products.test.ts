@@ -434,13 +434,14 @@ describe('GET /api/products?status', () => {
     expect(call.where).not.toHaveProperty('isActive')
   })
 
-  it('does not filter isActive when status is invalid', async () => {
+  it('defaults to active when status is invalid', async () => {
     mockFindMany.mockResolvedValue([])
     await request(app)
       .get('/api/products?status=unknown')
       .set('Authorization', `Bearer ${adminToken}`)
-    const call = mockFindMany.mock.calls[0][0]
-    expect(call.where).not.toHaveProperty('isActive')
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ isActive: true }) })
+    )
   })
 })
 
