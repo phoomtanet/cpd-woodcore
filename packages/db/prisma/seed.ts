@@ -199,6 +199,8 @@ async function main() {
     'master-types',
     'master-units',
     'master-categories',
+    'master-warehouses',
+    'master-bins',
   ]
 
   const DEFAULTS: Record<RoleKey, Record<string, PermDef>> = {
@@ -220,6 +222,8 @@ async function main() {
       'master-types': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
       'master-units': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
       'master-categories': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'master-warehouses': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'master-bins': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
     },
     staff: {
       dashboard: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
@@ -236,6 +240,8 @@ async function main() {
       'master-types': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-units': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-categories': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-warehouses': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-bins': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
     },
   }
 

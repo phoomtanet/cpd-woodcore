@@ -35,6 +35,18 @@ jest.mock('@cpd/db', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    warehouse: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    binLocation: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
   },
 }))
 
@@ -59,6 +71,22 @@ const mockCatFindFirst = (prisma as any).category.findFirst as jest.Mock
 const mockCatCreate = (prisma as any).category.create as jest.Mock
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockCatUpdate = (prisma as any).category.update as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockWhFindMany = (prisma as any).warehouse.findMany as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockWhFindFirst = (prisma as any).warehouse.findFirst as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockWhCreate = (prisma as any).warehouse.create as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockWhUpdate = (prisma as any).warehouse.update as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockBinFindMany = (prisma as any).binLocation.findMany as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockBinFindFirst = (prisma as any).binLocation.findFirst as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockBinCreate = (prisma as any).binLocation.create as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockBinUpdate = (prisma as any).binLocation.update as jest.Mock
 
 const MOCK_PT = {
   id: 1,
@@ -80,6 +108,27 @@ const MOCK_UNIT = {
 const MOCK_CATEGORY = {
   id: 1,
   name: 'พาเลท',
+  isActive: true,
+  deletedAt: null,
+  createdBy: null,
+  updatedBy: null,
+}
+const MOCK_WAREHOUSE = {
+  id: 1,
+  code: 'WH-MAIN',
+  name: 'คลังหลัก',
+  shortName: null,
+  address: null,
+  isActive: true,
+  deletedAt: null,
+  createdBy: null,
+  updatedBy: null,
+}
+const MOCK_BIN = {
+  id: 1,
+  warehouseId: 1,
+  code: 'A-01',
+  name: 'ชั้น A แถว 1',
   isActive: true,
   deletedAt: null,
   createdBy: null,
@@ -714,5 +763,357 @@ describe('PATCH /api/master/categories/:id/status', () => {
       .send({ isActive: true })
     expect(res.status).toBe(200)
     expect(res.body.data.isActive).toBe(true)
+  })
+})
+
+// ─── GET /api/master/warehouses ──────────────────────────────────────────────
+
+describe('GET /api/master/warehouses', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/master/warehouses')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns active warehouses by default', async () => {
+    mockWhFindMany.mockResolvedValue([MOCK_WAREHOUSE])
+    const res = await request(app)
+      .get('/api/master/warehouses')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+    expect(res.body.data[0].code).toBe('WH-MAIN')
+  })
+
+  it('returns all warehouses when status=all', async () => {
+    mockWhFindMany.mockResolvedValue([
+      MOCK_WAREHOUSE,
+      { ...MOCK_WAREHOUSE, id: 2, isActive: false },
+    ])
+    const res = await request(app)
+      .get('/api/master/warehouses?status=all')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(2)
+  })
+})
+
+// ─── POST /api/master/warehouses ─────────────────────────────────────────────
+
+describe('POST /api/master/warehouses', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app)
+      .post('/api/master/warehouses')
+      .send({ code: 'WH-01', name: 'คลัง 1' })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for manager', async () => {
+    const res = await request(app)
+      .post('/api/master/warehouses')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ code: 'WH-01', name: 'คลัง 1' })
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 when code missing', async () => {
+    const res = await request(app)
+      .post('/api/master/warehouses')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'คลัง 1' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when name missing', async () => {
+    const res = await request(app)
+      .post('/api/master/warehouses')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code: 'WH-01' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 409 on duplicate code', async () => {
+    mockWhFindFirst.mockResolvedValue(MOCK_WAREHOUSE)
+    const res = await request(app)
+      .post('/api/master/warehouses')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code: 'WH-MAIN', name: 'คลังซ้ำ' })
+    expect(res.status).toBe(409)
+  })
+
+  it('returns 201 on success with optional fields', async () => {
+    mockWhFindFirst.mockResolvedValue(null)
+    mockWhCreate.mockResolvedValue(MOCK_WAREHOUSE)
+    const res = await request(app)
+      .post('/api/master/warehouses')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code: 'WH-MAIN', name: 'คลังหลัก', shortName: 'Main', address: 'กรุงเทพฯ' })
+    expect(res.status).toBe(201)
+    expect(res.body.data.code).toBe('WH-MAIN')
+  })
+})
+
+// ─── PUT /api/master/warehouses/:id ──────────────────────────────────────────
+
+describe('PUT /api/master/warehouses/:id', () => {
+  it('returns 404 when not found', async () => {
+    mockWhFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .put('/api/master/warehouses/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'ใหม่' })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 409 on duplicate code', async () => {
+    mockWhFindFirst
+      .mockResolvedValueOnce(MOCK_WAREHOUSE)
+      .mockResolvedValueOnce({ ...MOCK_WAREHOUSE, id: 2 })
+    const res = await request(app)
+      .put('/api/master/warehouses/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code: 'WH-OTHER' })
+    expect(res.status).toBe(409)
+  })
+
+  it('returns 200 on success', async () => {
+    mockWhFindFirst.mockResolvedValue(MOCK_WAREHOUSE)
+    mockWhUpdate.mockResolvedValue({ ...MOCK_WAREHOUSE, name: 'อัปเดต' })
+    const res = await request(app)
+      .put('/api/master/warehouses/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'อัปเดต' })
+    expect(res.status).toBe(200)
+    expect(res.body.data.name).toBe('อัปเดต')
+  })
+})
+
+// ─── PATCH /api/master/warehouses/:id/status ─────────────────────────────────
+
+describe('PATCH /api/master/warehouses/:id/status', () => {
+  it('returns 400 when isActive missing', async () => {
+    const res = await request(app)
+      .patch('/api/master/warehouses/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when not found', async () => {
+    mockWhFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .patch('/api/master/warehouses/999/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(404)
+  })
+
+  it('toggles status', async () => {
+    mockWhFindFirst.mockResolvedValue(MOCK_WAREHOUSE)
+    mockWhUpdate.mockResolvedValue({ ...MOCK_WAREHOUSE, isActive: false })
+    const res = await request(app)
+      .patch('/api/master/warehouses/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(false)
+  })
+})
+
+// ─── DELETE /api/master/warehouses/:id ───────────────────────────────────────
+
+describe('DELETE /api/master/warehouses/:id', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).delete('/api/master/warehouses/1')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for manager', async () => {
+    const res = await request(app)
+      .delete('/api/master/warehouses/1')
+      .set('Authorization', `Bearer ${managerToken}`)
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 404 when not found', async () => {
+    mockWhFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .delete('/api/master/warehouses/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(404)
+  })
+
+  it('soft-deletes warehouse', async () => {
+    mockWhFindFirst.mockResolvedValue(MOCK_WAREHOUSE)
+    mockWhUpdate.mockResolvedValue({ ...MOCK_WAREHOUSE, deletedAt: new Date() })
+    const res = await request(app)
+      .delete('/api/master/warehouses/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toBeNull()
+  })
+})
+
+// ─── GET /api/master/warehouses/:id/bins ─────────────────────────────────────
+
+describe('GET /api/master/warehouses/:id/bins', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/master/warehouses/1/bins')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 404 when warehouse not found', async () => {
+    mockWhFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .get('/api/master/warehouses/999/bins')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(404)
+  })
+
+  it('returns bins of warehouse', async () => {
+    mockWhFindFirst.mockResolvedValue(MOCK_WAREHOUSE)
+    mockBinFindMany.mockResolvedValue([MOCK_BIN])
+    const res = await request(app)
+      .get('/api/master/warehouses/1/bins')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+    expect(res.body.data[0].code).toBe('A-01')
+  })
+})
+
+// ─── POST /api/master/bin-locations ──────────────────────────────────────────
+
+describe('POST /api/master/bin-locations', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app)
+      .post('/api/master/bin-locations')
+      .send({ warehouseId: 1, code: 'A-01' })
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 400 when warehouseId missing', async () => {
+    const res = await request(app)
+      .post('/api/master/bin-locations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code: 'A-01' })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when code missing', async () => {
+    const res = await request(app)
+      .post('/api/master/bin-locations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ warehouseId: 1 })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when warehouse not found', async () => {
+    mockWhFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .post('/api/master/bin-locations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ warehouseId: 999, code: 'A-01' })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 409 on duplicate code in same warehouse', async () => {
+    mockWhFindFirst.mockResolvedValue(MOCK_WAREHOUSE)
+    mockBinFindFirst.mockResolvedValue(MOCK_BIN)
+    const res = await request(app)
+      .post('/api/master/bin-locations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ warehouseId: 1, code: 'A-01' })
+    expect(res.status).toBe(409)
+  })
+
+  it('returns 201 on success', async () => {
+    mockWhFindFirst.mockResolvedValue(MOCK_WAREHOUSE)
+    mockBinFindFirst.mockResolvedValue(null)
+    mockBinCreate.mockResolvedValue(MOCK_BIN)
+    const res = await request(app)
+      .post('/api/master/bin-locations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ warehouseId: 1, code: 'A-01', name: 'ชั้น A แถว 1' })
+    expect(res.status).toBe(201)
+    expect(res.body.data.code).toBe('A-01')
+  })
+})
+
+// ─── PUT /api/master/bin-locations/:id ───────────────────────────────────────
+
+describe('PUT /api/master/bin-locations/:id', () => {
+  it('returns 404 when not found', async () => {
+    mockBinFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .put('/api/master/bin-locations/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code: 'B-01' })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 409 on duplicate code', async () => {
+    mockBinFindFirst.mockResolvedValueOnce(MOCK_BIN).mockResolvedValueOnce({ ...MOCK_BIN, id: 2 })
+    const res = await request(app)
+      .put('/api/master/bin-locations/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code: 'B-01' })
+    expect(res.status).toBe(409)
+  })
+
+  it('returns 200 on success', async () => {
+    mockBinFindFirst.mockResolvedValue(MOCK_BIN)
+    mockBinUpdate.mockResolvedValue({ ...MOCK_BIN, name: 'อัปเดต' })
+    const res = await request(app)
+      .put('/api/master/bin-locations/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'อัปเดต' })
+    expect(res.status).toBe(200)
+    expect(res.body.data.name).toBe('อัปเดต')
+  })
+})
+
+// ─── PATCH /api/master/bin-locations/:id/status ──────────────────────────────
+
+describe('PATCH /api/master/bin-locations/:id/status', () => {
+  it('returns 404 when not found', async () => {
+    mockBinFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .patch('/api/master/bin-locations/999/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(404)
+  })
+
+  it('toggles bin status', async () => {
+    mockBinFindFirst.mockResolvedValue(MOCK_BIN)
+    mockBinUpdate.mockResolvedValue({ ...MOCK_BIN, isActive: false })
+    const res = await request(app)
+      .patch('/api/master/bin-locations/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+    expect(res.status).toBe(200)
+    expect(res.body.data.isActive).toBe(false)
+  })
+})
+
+// ─── DELETE /api/master/bin-locations/:id ────────────────────────────────────
+
+describe('DELETE /api/master/bin-locations/:id', () => {
+  it('returns 404 when not found', async () => {
+    mockBinFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .delete('/api/master/bin-locations/999')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(404)
+  })
+
+  it('soft-deletes bin', async () => {
+    mockBinFindFirst.mockResolvedValue(MOCK_BIN)
+    mockBinUpdate.mockResolvedValue({ ...MOCK_BIN, deletedAt: new Date() })
+    const res = await request(app)
+      .delete('/api/master/bin-locations/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toBeNull()
   })
 })

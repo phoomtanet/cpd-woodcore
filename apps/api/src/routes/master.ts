@@ -107,4 +107,79 @@ router.delete(
   MasterController.removeCategory
 )
 
+const warehouseSchema = z.object({
+  code: z.string({ error: 'Required' }).min(1),
+  name: z.string({ error: 'Required' }).min(1),
+  shortName: z.string().optional(),
+  address: z.string().optional(),
+})
+
+const warehouseUpdateSchema = warehouseSchema.partial()
+
+const binSchema = z.object({
+  warehouseId: z.number({ error: 'Required' }).int().positive(),
+  code: z.string({ error: 'Required' }).min(1),
+  name: z.string().optional(),
+})
+
+const binUpdateSchema = z.object({
+  code: z.string().min(1).optional(),
+  name: z.string().optional(),
+})
+
+// Warehouses
+router.get('/warehouses', authenticate, MasterController.listWarehouses)
+router.post(
+  '/warehouses',
+  authenticate,
+  requireRole('admin'),
+  validate(warehouseSchema),
+  MasterController.createWarehouse
+)
+router.put(
+  '/warehouses/:id',
+  authenticate,
+  requireRole('admin'),
+  validate(warehouseUpdateSchema),
+  MasterController.updateWarehouse
+)
+router.patch(
+  '/warehouses/:id/status',
+  authenticate,
+  requireRole('admin'),
+  validate(statusSchema),
+  MasterController.updateWarehouseStatus
+)
+router.delete(
+  '/warehouses/:id',
+  authenticate,
+  requireRole('admin'),
+  MasterController.removeWarehouse
+)
+
+// Bin Locations — list nested under warehouse, CRUD standalone
+router.get('/warehouses/:id/bins', authenticate, MasterController.listBins)
+router.post(
+  '/bin-locations',
+  authenticate,
+  requireRole('admin'),
+  validate(binSchema),
+  MasterController.createBin
+)
+router.put(
+  '/bin-locations/:id',
+  authenticate,
+  requireRole('admin'),
+  validate(binUpdateSchema),
+  MasterController.updateBin
+)
+router.patch(
+  '/bin-locations/:id/status',
+  authenticate,
+  requireRole('admin'),
+  validate(statusSchema),
+  MasterController.updateBinStatus
+)
+router.delete('/bin-locations/:id', authenticate, requireRole('admin'), MasterController.removeBin)
+
 export default router
