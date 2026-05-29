@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Form, Input, InputNumber, Select, Switch, Modal, App, Upload } from 'antd'
+import { Col, Form, Input, InputNumber, Row, Select, Switch, Modal, App, Upload } from 'antd'
 import { PictureOutlined, UploadOutlined } from '@ant-design/icons'
 import type { Product, CreateProductDto, UpdateProductDto } from '../types'
 import { productsApi } from '../services/productsApi'
@@ -106,7 +106,7 @@ export default function ProductFormModal({
       onCancel={onClose}
       confirmLoading={loading}
       destroyOnHidden
-      width={560}
+      width={680}
     >
       {isEdit && editing?.image && (
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
@@ -143,67 +143,96 @@ export default function ProductFormModal({
       )}
 
       <Form form={form} layout="vertical">
-        <Form.Item
-          name="name"
-          label="ชื่อสินค้า"
-          rules={[{ required: true, message: 'กรุณากรอกชื่อ' }]}
-        >
-          <Input placeholder="ชื่อสินค้า" />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="name"
+              label="ชื่อสินค้า"
+              rules={[{ required: true, message: 'กรุณากรอกชื่อ' }]}
+            >
+              <Input placeholder="ชื่อสินค้า" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="sku"
+              label="SKU"
+              rules={[{ required: true, message: 'กรุณากรอก SKU' }]}
+            >
+              <Input placeholder="เช่น FG-PALLET-80X120" disabled={isEdit} />
+            </Form.Item>
+          </Col>
+        </Row>
 
-        <Form.Item name="sku" label="SKU" rules={[{ required: true, message: 'กรุณากรอก SKU' }]}>
-          <Input placeholder="เช่น RM-EUCALYPTUS-001, FG-PALLET-80X120" disabled={isEdit} />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="productType"
+              label="ประเภท"
+              rules={[{ required: true, message: 'กรุณาเลือกประเภท' }]}
+            >
+              <Select options={productTypeOptions} placeholder="เลือกประเภท" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="unit"
+              label="หน่วย"
+              rules={[{ required: true, message: 'กรุณาเลือกหน่วย' }]}
+            >
+              <Select options={unitOptions} placeholder="เลือกหน่วย" showSearch allowClear />
+            </Form.Item>
+          </Col>
+        </Row>
 
-        <Form.Item
-          name="productType"
-          label="ประเภท"
-          rules={[{ required: true, message: 'กรุณาเลือกประเภท' }]}
-        >
-          <Select options={productTypeOptions} placeholder="เลือกประเภท" />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="barcode" label="Barcode">
+              <Input placeholder="Barcode (ถ้ามี)" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="categoryId" label="หมวดหมู่">
+              <Select options={categoryOptions} placeholder="เลือกหมวดหมู่ (ถ้ามี)" allowClear />
+            </Form.Item>
+          </Col>
+        </Row>
 
-        <Form.Item
-          name="unit"
-          label="หน่วย"
-          rules={[{ required: true, message: 'กรุณากรอกหน่วย' }]}
-        >
-          <Select options={unitOptions} placeholder="เลือกหน่วย" showSearch allowClear />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="costPrice"
+              label="ราคาทุน (บาท)"
+              rules={[{ required: true, message: 'กรุณากรอกราคาทุน' }]}
+            >
+              <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0.00" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="salePrice"
+              label="ราคาขาย (บาท)"
+              rules={[{ required: true, message: 'กรุณากรอกราคาขาย' }]}
+            >
+              <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0.00" />
+            </Form.Item>
+          </Col>
+        </Row>
 
-        <Form.Item name="barcode" label="Barcode">
-          <Input placeholder="Barcode (ถ้ามี)" />
-        </Form.Item>
-
-        <Form.Item name="categoryId" label="หมวดหมู่">
-          <Select options={categoryOptions} placeholder="เลือกหมวดหมู่ (ถ้ามี)" allowClear />
-        </Form.Item>
-
-        <Form.Item
-          name="costPrice"
-          label="ราคาทุน (บาท)"
-          rules={[{ required: true, message: 'กรุณากรอกราคาทุน' }]}
-        >
-          <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0.00" />
-        </Form.Item>
-
-        <Form.Item
-          name="salePrice"
-          label="ราคาขาย (บาท)"
-          rules={[{ required: true, message: 'กรุณากรอกราคาขาย' }]}
-        >
-          <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0.00" />
-        </Form.Item>
-
-        <Form.Item name="minStock" label="จำนวนขั้นต่ำ (สำหรับแจ้งเตือน)">
-          <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-        </Form.Item>
-
-        {isEdit && (
-          <Form.Item name="isActive" label="สถานะ" valuePropName="checked">
-            <Switch checkedChildren="ใช้งาน" unCheckedChildren="ปิด" />
-          </Form.Item>
-        )}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="minStock" label="จำนวนขั้นต่ำ (สำหรับแจ้งเตือน)">
+              <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
+            </Form.Item>
+          </Col>
+          {isEdit && (
+            <Col span={12}>
+              <Form.Item name="isActive" label="สถานะ" valuePropName="checked">
+                <Switch checkedChildren="ใช้งาน" unCheckedChildren="ปิด" />
+              </Form.Item>
+            </Col>
+          )}
+        </Row>
       </Form>
     </Modal>
   )
