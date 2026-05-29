@@ -26,9 +26,17 @@ export const stockApi = {
   getHistory: (params?: { type?: string; productId?: number; from?: string; to?: string }) =>
     api.get<ApiResponse<StockTransaction[]>>('/stock/history', { params }).then((r) => r.data.data),
 
-  getStockCard: (productId: number, from?: string, to?: string, order?: 'asc' | 'desc') =>
+  getStockCard: (
+    productId: number,
+    from?: string,
+    to?: string,
+    order?: 'asc' | 'desc',
+    warehouseId?: number
+  ) =>
     api
-      .get<ApiResponse<StockCardData>>(`/stock/card/${productId}`, { params: { from, to, order } })
+      .get<ApiResponse<StockCardData>>(`/stock/card/${productId}`, {
+        params: { from, to, order, warehouseId },
+      })
       .then((r) => r.data.data),
 
   getLowAlert: () =>

@@ -17,6 +17,11 @@ export interface Product {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  stocks?: Array<{
+    warehouseId: number
+    quantity: number
+    warehouse: { id: number; name: string; shortName?: string | null }
+  }>
 }
 
 export interface CreateProductDto {

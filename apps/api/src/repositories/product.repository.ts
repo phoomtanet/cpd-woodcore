@@ -25,7 +25,13 @@ export const ProductRepository = {
           ],
         }),
       },
-      include: { category: true },
+      include: {
+        category: true,
+        stocks: {
+          include: { warehouse: { select: { id: true, name: true, shortName: true } } },
+          orderBy: { warehouseId: 'asc' },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     })
   },
@@ -33,7 +39,13 @@ export const ProductRepository = {
   findById(id: number) {
     return prisma.product.findFirst({
       where: { id, deletedAt: null },
-      include: { category: true },
+      include: {
+        category: true,
+        stocks: {
+          include: { warehouse: { select: { id: true, name: true, shortName: true } } },
+          orderBy: { warehouseId: 'asc' },
+        },
+      },
     })
   },
 

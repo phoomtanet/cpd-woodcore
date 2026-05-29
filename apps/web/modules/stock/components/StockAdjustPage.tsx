@@ -5,9 +5,12 @@ import { Form, Select, InputNumber, Input, Button, Alert, App } from 'antd'
 import PageHeader from '@/shared/components/PageHeader'
 import { stockApi } from '../services/stockApi'
 import { productsApi } from '@/modules/products/services/productsApi'
+import { masterApi } from '@/modules/master/services/masterApi'
 import { usePermissionStore } from '@/store/permissionStore'
+import { useMasterStore } from '@/store/masterStore'
 import { syncAlerts } from '@/store/alertsStore'
 import type { Product } from '@/modules/products/types'
+import type { BinLocationItem } from '@/types'
 
 function StockAdjustForm() {
   const [form] = Form.useForm()
@@ -15,26 +18,56 @@ function StockAdjustForm() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
   const canCreate = usePermissionStore((s) => s.canCreate('stock-adjust'))
+  const warehouses = useMasterStore((s) => s.warehouses)
+  const multiWh = warehouses.length > 1
+  const [bins, setBins] = useState<BinLocationItem[]>([])
 
   useEffect(() => {
     productsApi
       .getAll({ status: 'active' })
       .then(setProducts)
       .catch(() => {})
-  }, [])
+    if (!multiWh && warehouses[0]) {
+      masterApi
+        .getBinsByWarehouse(warehouses[0].id, 'active')
+        .then(setBins)
+        .catch(() => {})
+    }
+  }, [multiWh, warehouses])
+
+  const handleWarehouseChange = async (wid: number) => {
+    form.setFieldValue('binId', undefined)
+    setBins([])
+    try {
+      const b = await masterApi.getBinsByWarehouse(wid, 'active')
+      setBins(b)
+    } catch {
+      // bin fetch is optional — ignore errors
+    }
+  }
 
   const onFinish = async (values: {
     productId: number
     quantity: number
+    warehouseId?: number
+    binId?: number
     reason?: string
     note?: string
   }) => {
     setLoading(true)
+    const warehouseId = multiWh ? values.warehouseId : warehouses[0]?.id
     try {
-      await stockApi.stockAdjust(values)
+      await stockApi.stockAdjust({ ...values, warehouseId })
       message.success('ปรับสต๊อกเรียบร้อย')
       syncAlerts()
       form.resetFields()
+      setBins([])
+      if (!multiWh && warehouses[0]) {
+        masterApi
+          .getBinsByWarehouse(warehouses[0].id, 'active')
+          .then(setBins)
+          .catch(() => {})
+      }
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
       message.error(typeof msg === 'string' ? msg : 'เกิดข้อผิดพลาด')
@@ -71,6 +104,33 @@ function StockAdjustForm() {
             placeholder="เลือกสินค้า"
           />
         </Form.Item>
+
+        {multiWh && (
+          <Form.Item
+            name="warehouseId"
+            label="คลัง"
+            rules={[{ required: true, message: 'กรุณาเลือกคลัง' }]}
+          >
+            <Select
+              options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
+              placeholder="เลือกคลัง"
+              onChange={handleWarehouseChange}
+            />
+          </Form.Item>
+        )}
+
+        {bins.length > 0 && (
+          <Form.Item name="binId" label="Bin Location">
+            <Select
+              options={bins.map((b) => ({
+                value: b.id,
+                label: b.name ? `${b.code} — ${b.name}` : b.code,
+              }))}
+              placeholder="เลือก Bin (ถ้ามี)"
+              allowClear
+            />
+          </Form.Item>
+        )}
 
         <Form.Item
           name="quantity"

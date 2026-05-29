@@ -16,18 +16,23 @@ export interface StockTransaction {
 export interface StockInDto {
   productId: number
   quantity: number
+  warehouseId?: number
+  binId?: number
   note?: string
 }
 
 export interface StockOutDto {
   productId: number
   quantity: number
+  warehouseId?: number
+  binId?: number
   note?: string
 }
 
 export interface StockAdjustDto {
   productId: number
   quantity: number
+  warehouseId?: number
   reason?: string
   note?: string
 }
@@ -37,6 +42,10 @@ export interface StockTransferDto {
   quantity: number
   fromLocation: string
   toLocation: string
+  fromWarehouseId?: number
+  toWarehouseId?: number
+  binId?: number
+  toBinId?: number
   note?: string
 }
 

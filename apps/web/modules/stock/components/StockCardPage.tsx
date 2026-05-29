@@ -7,6 +7,7 @@ import type { Dayjs } from 'dayjs'
 import PageHeader from '@/shared/components/PageHeader'
 import { stockApi } from '../services/stockApi'
 import { productsApi } from '@/modules/products/services/productsApi'
+import { useMasterStore } from '@/store/masterStore'
 import type { Product } from '@/modules/products/types'
 import type { StockCardData, StockCardRow, TxType } from '../types'
 
@@ -26,6 +27,9 @@ function StockCardContent() {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
+  const warehouses = useMasterStore((s) => s.warehouses)
+  const multiWh = warehouses.length > 1
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     productsApi
@@ -37,13 +41,14 @@ function StockCardContent() {
   const fetchCard = async (
     productId: number,
     range: [Dayjs | null, Dayjs | null] | null,
-    sortOrder: 'asc' | 'desc'
+    sortOrder: 'asc' | 'desc',
+    warehouseId?: number
   ) => {
     setLoading(true)
     try {
       const from = range?.[0]?.startOf('day').toISOString()
       const to = range?.[1]?.endOf('day').toISOString()
-      const data = await stockApi.getStockCard(productId, from, to, sortOrder)
+      const data = await stockApi.getStockCard(productId, from, to, sortOrder, warehouseId)
       setCardData(data)
     } catch {
       setCardData(null)
@@ -55,19 +60,25 @@ function StockCardContent() {
   const handleSelect = (productId: number) => {
     setSelectedId(productId)
     setPage(1)
-    fetchCard(productId, dateRange, order)
+    fetchCard(productId, dateRange, order, selectedWarehouseId)
   }
 
   const handleRangeChange = (range: [Dayjs | null, Dayjs | null] | null) => {
     setDateRange(range)
     setPage(1)
-    if (selectedId !== undefined) fetchCard(selectedId, range, order)
+    if (selectedId !== undefined) fetchCard(selectedId, range, order, selectedWarehouseId)
   }
 
   const handleOrderChange = (value: 'asc' | 'desc') => {
     setOrder(value)
     setPage(1)
-    if (selectedId !== undefined) fetchCard(selectedId, dateRange, value)
+    if (selectedId !== undefined) fetchCard(selectedId, dateRange, value, selectedWarehouseId)
+  }
+
+  const handleWarehouseFilterChange = (wid: number | undefined) => {
+    setSelectedWarehouseId(wid)
+    setPage(1)
+    if (selectedId !== undefined) fetchCard(selectedId, dateRange, order, wid)
   }
 
   const columns: ColumnsType<StockCardRow> = [
@@ -197,6 +208,16 @@ function StockCardContent() {
             { value: 'asc', label: 'เก่า → ใหม่' },
           ]}
         />
+        {multiWh && (
+          <Select
+            value={selectedWarehouseId}
+            onChange={(v: number | undefined) => handleWarehouseFilterChange(v)}
+            style={{ width: 160 }}
+            placeholder="ทุกคลัง"
+            allowClear
+            options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
+          />
+        )}
       </Space>
 
       {product && (
