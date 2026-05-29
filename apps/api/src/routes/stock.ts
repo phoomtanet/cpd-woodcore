@@ -29,18 +29,23 @@ const stockCardQuerySchema = z.object({
   from: z.string().datetime({ offset: true }).optional(),
   to: z.string().datetime({ offset: true }).optional(),
   order: z.enum(['asc', 'desc']).optional(),
+  warehouseId: z.string().regex(/^\d+$/, 'warehouseId must be a positive integer').optional(),
 })
 
 const stockInSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().positive(),
   note: z.string().optional(),
+  warehouseId: z.number().int().positive().optional(),
+  binId: z.number().int().positive().optional(),
 })
 
 const stockOutSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().positive(),
   note: z.string().optional(),
+  warehouseId: z.number().int().positive().optional(),
+  binId: z.number().int().positive().optional(),
 })
 
 router.post(
@@ -56,6 +61,7 @@ const stockAdjustSchema = z.object({
   quantity: z.number().int().min(0),
   reason: z.string().optional(),
   note: z.string().optional(),
+  warehouseId: z.number().int().positive().optional(),
 })
 
 const stockTransferSchema = z.object({
@@ -64,6 +70,10 @@ const stockTransferSchema = z.object({
   fromLocation: z.string().min(1),
   toLocation: z.string().min(1),
   note: z.string().optional(),
+  fromWarehouseId: z.number().int().positive().optional(),
+  toWarehouseId: z.number().int().positive().optional(),
+  binId: z.number().int().positive().optional(),
+  toBinId: z.number().int().positive().optional(),
 })
 
 router.post(

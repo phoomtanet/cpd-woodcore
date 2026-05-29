@@ -4,22 +4,36 @@ import { NotFoundError, BadRequestError } from '../utils/errors'
 import type { TxType } from '@prisma/client'
 
 export const StockService = {
-  async stockIn(productId: number, quantity: number, userId: number, note?: string) {
+  async stockIn(
+    productId: number,
+    quantity: number,
+    userId: number,
+    note?: string,
+    warehouseId = 1,
+    binId?: number
+  ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
-    const [, transaction] = await StockRepository.stockIn(productId, quantity, userId, note)
-    return transaction
+    return StockRepository.stockIn(productId, quantity, userId, note, warehouseId, binId)
   },
 
-  async stockOut(productId: number, quantity: number, userId: number, note?: string) {
+  async stockOut(
+    productId: number,
+    quantity: number,
+    userId: number,
+    note?: string,
+    warehouseId = 1,
+    binId?: number
+  ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
-    if (product.currentStock < quantity)
+    const warehouseStock = await StockRepository.findProductStock(productId, warehouseId)
+    const availableQty = warehouseStock ? warehouseStock.quantity : 0
+    if (availableQty < quantity)
       throw new BadRequestError(
-        `Insufficient stock: available ${product.currentStock}, requested ${quantity}`
+        `Insufficient stock: available ${availableQty}, requested ${quantity}`
       )
-    const [, transaction] = await StockRepository.stockOut(productId, quantity, userId, note)
-    return transaction
+    return StockRepository.stockOut(productId, quantity, userId, note, warehouseId, binId)
   },
 
   async stockAdjust(
@@ -27,18 +41,12 @@ export const StockService = {
     newQuantity: number,
     userId: number,
     reason?: string,
-    note?: string
+    note?: string,
+    warehouseId = 1
   ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
-    const [, transaction] = await StockRepository.stockAdjust(
-      productId,
-      newQuantity,
-      userId,
-      reason,
-      note
-    )
-    return transaction
+    return StockRepository.stockAdjust(productId, newQuantity, userId, reason, note, warehouseId)
   },
 
   async stockTransfer(
@@ -47,23 +55,32 @@ export const StockService = {
     fromLocation: string,
     toLocation: string,
     userId: number,
-    note?: string
+    note?: string,
+    fromWarehouseId = 1,
+    toWarehouseId = 1,
+    binId?: number,
+    toBinId?: number
   ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
-    if (product.currentStock < quantity)
+    const warehouseStock = await StockRepository.findProductStock(productId, fromWarehouseId)
+    const availableQty = warehouseStock ? warehouseStock.quantity : 0
+    if (availableQty < quantity)
       throw new BadRequestError(
-        `Insufficient stock: available ${product.currentStock}, requested ${quantity}`
+        `Insufficient stock: available ${availableQty}, requested ${quantity}`
       )
-    const [transaction] = await StockRepository.stockTransfer(
+    return StockRepository.stockTransfer(
       productId,
       quantity,
       fromLocation,
       toLocation,
       userId,
-      note
+      note,
+      fromWarehouseId,
+      toWarehouseId,
+      binId,
+      toBinId
     )
-    return transaction
   },
 
   async getHistory(params: { type?: TxType; productId?: number; from?: string; to?: string }) {
@@ -83,7 +100,8 @@ export const StockService = {
     productId: number,
     from?: string,
     to?: string,
-    order: 'asc' | 'desc' = 'desc'
+    order: 'asc' | 'desc' = 'desc',
+    warehouseId?: number
   ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
@@ -91,7 +109,8 @@ export const StockService = {
     const transactions = await StockRepository.findTransactionsByProduct(
       productId,
       from ? new Date(from) : undefined,
-      to ? new Date(to) : undefined
+      to ? new Date(to) : undefined,
+      warehouseId
     )
 
     let balance = 0
