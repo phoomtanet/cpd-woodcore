@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Table, Tag, Button, Space, Popconfirm, App, Avatar } from 'antd'
+import { Table, Tag, Button, Space, Popconfirm, App, Avatar, Modal } from 'antd'
 import { EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import type { Product, ProductType } from '../types'
+import { API_BASE_URL } from '@/constants'
+
+const API_ORIGIN = API_BASE_URL.replace(/\/api$/, '')
 
 const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   raw: 'วัตถุดิบ',
@@ -44,6 +47,7 @@ export default function ProductTable({
   const { message } = App.useApp()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
 
   const handleDelete = async (id: number) => {
     try {
@@ -66,12 +70,20 @@ export default function ProductTable({
       title: 'รูป',
       key: 'image',
       width: 64,
-      render: (_: unknown, record: Product) =>
-        record.image ? (
-          <Avatar shape="square" size={48} src={record.image} />
+      render: (_: unknown, record: Product) => {
+        const src = record.image ? `${API_ORIGIN}${record.image}` : null
+        return src ? (
+          <Avatar
+            shape="square"
+            size={48}
+            src={src}
+            style={{ cursor: 'zoom-in' }}
+            onClick={() => setPreviewSrc(src)}
+          />
         ) : (
           <Avatar shape="square" size={48} icon={<PictureOutlined />} />
-        ),
+        )
+      },
     },
     {
       title: 'ชื่อสินค้า',
@@ -156,25 +168,43 @@ export default function ProductTable({
   }
 
   return (
-    <Table
-      columns={columns}
-      dataSource={products}
-      rowKey="id"
-      loading={loading}
-      pagination={{
-        current: page,
-        pageSize,
-        showSizeChanger: true,
-        pageSizeOptions: [10, 20, 50, 100],
-        showTotal: (total: number) => `ทั้งหมด ${total} รายการ`,
-        onChange: (p: number) => setPage(p),
-        onShowSizeChange: (_: number, size: number) => {
-          setPageSize(size)
-          setPage(1)
-        },
-      }}
-      size="small"
-      scroll={{ x: 'max-content' }}
-    />
+    <>
+      <Modal
+        open={!!previewSrc}
+        footer={null}
+        onCancel={() => setPreviewSrc(null)}
+        centered
+        width="auto"
+        styles={{ body: { padding: 0, lineHeight: 0 } }}
+      >
+        {previewSrc && (
+          <img
+            src={previewSrc}
+            alt="preview"
+            style={{ maxWidth: '80vw', maxHeight: '80vh', display: 'block' }}
+          />
+        )}
+      </Modal>
+      <Table
+        columns={columns}
+        dataSource={products}
+        rowKey="id"
+        loading={loading}
+        pagination={{
+          current: page,
+          pageSize,
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          showTotal: (total: number) => `ทั้งหมด ${total} รายการ`,
+          onChange: (p: number) => setPage(p),
+          onShowSizeChange: (_: number, size: number) => {
+            setPageSize(size)
+            setPage(1)
+          },
+        }}
+        size="small"
+        scroll={{ x: 'max-content' }}
+      />
+    </>
   )
 }

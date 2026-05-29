@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import { ProductService } from '../services/product.service'
+import { saveResizedImage } from '../middleware/upload'
 
 export const ProductController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -54,7 +55,7 @@ export const ProductController = {
         res.status(400).json({ error: 'No image file provided' })
         return
       }
-      const imageUrl = `/uploads/products/${req.file.filename}`
+      const imageUrl = await saveResizedImage(req.file.buffer)
       const product = await ProductService.updateImage(Number(req.params.id), imageUrl)
       res.json({ data: product, message: 'ok' })
     } catch (err) {

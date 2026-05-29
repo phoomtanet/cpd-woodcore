@@ -39,7 +39,11 @@ export const productsApi = {
 
   uploadImage: (id: number, file: File) => {
     const form = new FormData()
-    form.append('image', file)
-    return api.post<ApiResponse<Product>>(`/products/${id}/image`, form).then((r) => r.data.data)
+    form.append('image', file, file.name || 'product.jpg')
+    return api
+      .post<ApiResponse<Product>>(`/products/${id}/image`, form, {
+        headers: { 'Content-Type': undefined },
+      })
+      .then((r) => r.data.data)
   },
 }
