@@ -64,6 +64,31 @@ export interface CategoryItem {
   updatedBy?: { name: string } | null
 }
 
+export interface WarehouseItem {
+  id: number
+  code: string
+  name: string
+  shortName?: string | null
+  address?: string | null
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+  createdBy?: { name: string } | null
+  updatedBy?: { name: string } | null
+}
+
+export interface BinLocationItem {
+  id: number
+  warehouseId: number
+  code: string
+  name?: string | null
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+  createdBy?: { name: string } | null
+  updatedBy?: { name: string } | null
+}
+
 export interface RolePermission {
   id: number
   role: Role

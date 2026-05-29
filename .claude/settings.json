@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Set-Location \"E:\\\\project\\\\cpd-woodcore\\\\apps\\\\web\"; $env:NEXT_TELEMETRY_DISABLED = \"1\"; npm run build 2>&1)",
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue | Where-Object { $_.CPU -gt 0 -or $_.WorkingSet64 -gt 0 } | Format-Table Id, CPU, WorkingSet64 -AutoSize)",
+      "PowerShell($f = \"C:\\\\Users\\\\surin\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\e--project-cpd-woodcore\\\\2d48bf48-8331-4327-af28-1b54d04f80da\\\\tasks\\\\bi27ai2jj.output\"; \\(Get-Item $f\\).Length; Get-Content $f)",
+      "PowerShell(Start-Sleep -Seconds 10; $f = \"C:\\\\Users\\\\surin\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\e--project-cpd-woodcore\\\\2d48bf48-8331-4327-af28-1b54d04f80da\\\\tasks\\\\bi27ai2jj.output\"; \\(Get-Item $f\\).Length)",
+      "PowerShell(Stop-Process -Id 38520 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 10512 -Force)",
+      "PowerShell(try { [System.IO.File]::OpenWrite\\(\"E:\\\\project\\\\cpd-woodcore\\\\apps\\\\web\\\\.next\\\\trace\"\\).Close\\(\\); Write-Host \"File is free\" } catch { Write-Host \"File locked: $_\" })",
+      "PowerShell(Stop-Process -Id 12048 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 36144 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 29840 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(try { [System.IO.File]::OpenWrite\\(\"E:\\\\project\\\\cpd-woodcore\\\\apps\\\\web\\\\.next\\\\trace\"\\).Close\\(\\); Write-Host \"File is now FREE\" } catch { Write-Host \"Still locked: $_\" })"
+    ]
+  }
+}

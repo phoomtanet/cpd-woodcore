@@ -14,6 +14,7 @@ export const ROUTES = {
   SETTINGS_MASTER_TYPES: '/settings/master',
   SETTINGS_MASTER_UNITS: '/settings/master/units',
   SETTINGS_MASTER_CATEGORIES: '/settings/master/categories',
+  SETTINGS_MASTER_WAREHOUSES: '/settings/master/warehouses',
 } as const
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api'
