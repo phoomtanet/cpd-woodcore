@@ -4,6 +4,14 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
+  // Seed default warehouse
+  await prisma.warehouse.upsert({
+    where: { code: 'WH-MAIN' },
+    update: {},
+    create: { code: 'WH-MAIN', name: 'คลังหลัก', isActive: true },
+  })
+  console.log('✓ Warehouse: คลังหลัก (WH-MAIN)')
+
   // Seed categories
   const categories = ['พาเลท', 'ไม้แปรรูป', 'บรรจุภัณฑ์', 'วัตถุดิบ', 'อุปกรณ์', 'สินค้าสำเร็จรูป']
   for (const name of categories) {
@@ -151,11 +159,23 @@ async function main() {
     },
   ]
 
+  const mainWarehouse = await prisma.warehouse.findUnique({ where: { code: 'WH-MAIN' } })
+  const mainWarehouseId = mainWarehouse!.id
+
   for (const p of products) {
     const product = await prisma.product.upsert({
       where: { sku: p.sku },
       update: { categoryId: p.categoryId },
       create: p,
+    })
+    await prisma.productStock.upsert({
+      where: { productId_warehouseId: { productId: product.id, warehouseId: mainWarehouseId } },
+      update: {},
+      create: {
+        productId: product.id,
+        warehouseId: mainWarehouseId,
+        quantity: product.currentStock,
+      },
     })
     console.log(`✓ Product: [${product.productType}] ${product.name} (${product.sku})`)
   }

@@ -42,6 +42,10 @@ model User {
   productTypeUpdated ProductTypeItem[] @relation("ProductTypeUpdatedBy")
   unitCreated        Unit[]            @relation("UnitCreatedBy")
   unitUpdated        Unit[]            @relation("UnitUpdatedBy")
+  warehouseCreated   Warehouse[]       @relation("WarehouseCreatedBy")
+  warehouseUpdated   Warehouse[]       @relation("WarehouseUpdatedBy")
+  binCreated         BinLocation[]     @relation("BinCreatedBy")
+  binUpdated         BinLocation[]     @relation("BinUpdatedBy")
 }
 
 model Category {
@@ -77,6 +81,7 @@ model Product {
   updatedAt    DateTime           @updatedAt
   deletedAt    DateTime?
   transactions StockTransaction[]
+  stocks       ProductStock[]
 }
 
 model RolePermission {
@@ -120,17 +125,75 @@ model Unit {
   updatedBy   User?     @relation("UnitUpdatedBy", fields: [updatedById], references: [id])
 }
 
+model Warehouse {
+  id               Int                @id @default(autoincrement())
+  code             String             @unique
+  name             String
+  shortName        String?
+  address          String?
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+  createdById      Int?
+  updatedById      Int?
+  createdBy        User?              @relation("WarehouseCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User?              @relation("WarehouseUpdatedBy", fields: [updatedById], references: [id])
+  bins             BinLocation[]
+  stocks           ProductStock[]
+  fromTransactions StockTransaction[] @relation("TxFromWarehouse")
+  toTransactions   StockTransaction[] @relation("TxToWarehouse")
+}
+
+model BinLocation {
+  id               Int                @id @default(autoincrement())
+  warehouseId      Int
+  warehouse        Warehouse          @relation(fields: [warehouseId], references: [id])
+  code             String
+  name             String?
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+  createdById      Int?
+  updatedById      Int?
+  createdBy        User?              @relation("BinCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User?              @relation("BinUpdatedBy", fields: [updatedById], references: [id])
+  fromTransactions StockTransaction[] @relation("TxFromBin")
+  toTransactions   StockTransaction[] @relation("TxToBin")
+
+  @@unique([warehouseId, code])
+}
+
+model ProductStock {
+  productId   Int
+  warehouseId Int
+  quantity    Int       @default(0)
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@id([productId, warehouseId])
+}
+
 model StockTransaction {
-  id           Int      @id @default(autoincrement())
-  product      Product  @relation(fields: [productId], references: [id])
-  productId    Int
-  type         TxType
-  quantity     Int
-  fromLocation String?
-  toLocation   String?
-  reason       String?
-  note         String?
-  createdBy    User     @relation(fields: [userId], references: [id])
-  userId       Int
-  createdAt    DateTime @default(now())
+  id            Int          @id @default(autoincrement())
+  product       Product      @relation(fields: [productId], references: [id])
+  productId     Int
+  type          TxType
+  quantity      Int
+  fromLocation  String?
+  toLocation    String?
+  warehouseId   Int?
+  toWarehouseId Int?
+  binId         Int?
+  toBinId       Int?
+  warehouse     Warehouse?   @relation("TxFromWarehouse", fields: [warehouseId], references: [id])
+  toWarehouse   Warehouse?   @relation("TxToWarehouse", fields: [toWarehouseId], references: [id])
+  bin           BinLocation? @relation("TxFromBin", fields: [binId], references: [id])
+  tobin         BinLocation? @relation("TxToBin", fields: [toBinId], references: [id])
+  reason        String?
+  note          String?
+  createdBy     User         @relation(fields: [userId], references: [id])
+  userId        Int
+  createdAt     DateTime     @default(now())
 }
