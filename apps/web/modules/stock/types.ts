@@ -49,9 +49,27 @@ export interface StockTransferDto {
   note?: string
 }
 
+export interface StockCardWarehouse {
+  id: number
+  name: string
+  shortName?: string | null
+}
+
+export interface StockCardBin {
+  id: number
+  code: string
+  name?: string | null
+}
+
 export interface StockCardRow extends StockTransaction {
   balance: number
+  costValue: number
+  saleValue: number
   createdBy: { id: number; name: string }
+  warehouse?: StockCardWarehouse | null
+  toWarehouse?: StockCardWarehouse | null
+  bin?: StockCardBin | null
+  tobin?: StockCardBin | null
 }
 
 export interface LowStockProduct {
@@ -72,8 +90,12 @@ export interface StockCardData {
     name: string
     sku: string
     unit: string
+    costPrice: number
+    salePrice: number
     currentStock: number
     minStock: number
+    totalCostValue: number
+    totalSaleValue: number
   }
   transactions: StockCardRow[]
 }

@@ -31,11 +31,12 @@ export const stockApi = {
     from?: string,
     to?: string,
     order?: 'asc' | 'desc',
-    warehouseId?: number
+    warehouseId?: number,
+    binId?: number
   ) =>
     api
       .get<ApiResponse<StockCardData>>(`/stock/card/${productId}`, {
-        params: { from, to, order, warehouseId },
+        params: { from, to, order, warehouseId, binId },
       })
       .then((r) => r.data.data),
 

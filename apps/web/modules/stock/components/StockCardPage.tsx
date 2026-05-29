@@ -7,15 +7,33 @@ import type { Dayjs } from 'dayjs'
 import PageHeader from '@/shared/components/PageHeader'
 import { stockApi } from '../services/stockApi'
 import { productsApi } from '@/modules/products/services/productsApi'
+import { masterApi } from '@/modules/master/services/masterApi'
 import { useMasterStore } from '@/store/masterStore'
 import type { Product } from '@/modules/products/types'
-import type { StockCardData, StockCardRow, TxType } from '../types'
+import type { BinLocationItem } from '@/types'
+import type {
+  StockCardData,
+  StockCardRow,
+  StockCardWarehouse,
+  StockCardBin,
+  TxType,
+} from '../types'
 
 const TX_CONFIG: Record<TxType, { bg: string; text: string; border: string; label: string }> = {
   in: { bg: '#f6ffed', text: '#52c41a', border: '#b7eb8f', label: 'รับเข้า' },
   out: { bg: '#fff2f0', text: '#ff4d4f', border: '#ffa39e', label: 'เบิกออก' },
   adjust: { bg: '#fff7e6', text: '#fa8c16', border: '#ffd591', label: 'ปรับสต๊อก' },
   transfer: { bg: '#e6f4ff', text: '#1677ff', border: '#91caff', label: 'โอนย้าย' },
+}
+
+function fmt(n: number) {
+  return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function whLabel(wh?: StockCardWarehouse | null, bin?: StockCardBin | null) {
+  if (!wh) return null
+  const whName = wh.shortName ?? wh.name
+  return bin ? `${whName} / ${bin.code}` : whName
 }
 
 function StockCardContent() {
@@ -30,6 +48,8 @@ function StockCardContent() {
   const warehouses = useMasterStore((s) => s.warehouses)
   const multiWh = warehouses.length > 1
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | undefined>(undefined)
+  const [selectedBinId, setSelectedBinId] = useState<number | undefined>(undefined)
+  const [bins, setBins] = useState<BinLocationItem[]>([])
 
   useEffect(() => {
     productsApi
@@ -42,13 +62,14 @@ function StockCardContent() {
     productId: number,
     range: [Dayjs | null, Dayjs | null] | null,
     sortOrder: 'asc' | 'desc',
-    warehouseId?: number
+    warehouseId?: number,
+    binId?: number
   ) => {
     setLoading(true)
     try {
       const from = range?.[0]?.startOf('day').toISOString()
       const to = range?.[1]?.endOf('day').toISOString()
-      const data = await stockApi.getStockCard(productId, from, to, sortOrder, warehouseId)
+      const data = await stockApi.getStockCard(productId, from, to, sortOrder, warehouseId, binId)
       setCardData(data)
     } catch {
       setCardData(null)
@@ -60,25 +81,41 @@ function StockCardContent() {
   const handleSelect = (productId: number) => {
     setSelectedId(productId)
     setPage(1)
-    fetchCard(productId, dateRange, order, selectedWarehouseId)
+    fetchCard(productId, dateRange, order, selectedWarehouseId, selectedBinId)
   }
 
   const handleRangeChange = (range: [Dayjs | null, Dayjs | null] | null) => {
     setDateRange(range)
     setPage(1)
-    if (selectedId !== undefined) fetchCard(selectedId, range, order, selectedWarehouseId)
+    if (selectedId !== undefined)
+      fetchCard(selectedId, range, order, selectedWarehouseId, selectedBinId)
   }
 
   const handleOrderChange = (value: 'asc' | 'desc') => {
     setOrder(value)
     setPage(1)
-    if (selectedId !== undefined) fetchCard(selectedId, dateRange, value, selectedWarehouseId)
+    if (selectedId !== undefined)
+      fetchCard(selectedId, dateRange, value, selectedWarehouseId, selectedBinId)
   }
 
   const handleWarehouseFilterChange = (wid: number | undefined) => {
     setSelectedWarehouseId(wid)
+    setSelectedBinId(undefined)
+    setBins([])
     setPage(1)
-    if (selectedId !== undefined) fetchCard(selectedId, dateRange, order, wid)
+    if (wid) {
+      masterApi
+        .getBinsByWarehouse(wid, 'active')
+        .then(setBins)
+        .catch(() => {})
+    }
+    if (selectedId !== undefined) fetchCard(selectedId, dateRange, order, wid, undefined)
+  }
+
+  const handleBinFilterChange = (bid: number | undefined) => {
+    setSelectedBinId(bid)
+    setPage(1)
+    if (selectedId !== undefined) fetchCard(selectedId, dateRange, order, selectedWarehouseId, bid)
   }
 
   const columns: ColumnsType<StockCardRow> = [
@@ -155,10 +192,30 @@ function StockCardContent() {
       render: (v: number) => <strong>{v}</strong>,
     },
     {
-      title: 'สถานที่',
+      title: 'ต้นทุน (บาท)',
+      dataIndex: 'costValue',
+      key: 'costValue',
+      width: 120,
+      align: 'right' as const,
+      render: (v: number) => <span style={{ color: '#595959' }}>{fmt(v)}</span>,
+    },
+    {
+      title: 'ราคาขาย (บาท)',
+      dataIndex: 'saleValue',
+      key: 'saleValue',
+      width: 130,
+      align: 'right' as const,
+      render: (v: number) => <span style={{ color: '#1677ff' }}>{fmt(v)}</span>,
+    },
+    {
+      title: 'คลัง',
       key: 'location',
-      render: (_: unknown, row: StockCardRow) =>
-        row.fromLocation && row.toLocation ? `${row.fromLocation} → ${row.toLocation}` : null,
+      render: (_: unknown, row: StockCardRow) => {
+        const from = whLabel(row.warehouse, row.bin)
+        const to = whLabel(row.toWarehouse, row.tobin)
+        if (from && to) return `${from} → ${to}`
+        return from ?? to ?? null
+      },
     },
     {
       title: 'หมายเหตุ',
@@ -218,6 +275,19 @@ function StockCardContent() {
             options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
           />
         )}
+        {bins.length > 0 && (
+          <Select
+            value={selectedBinId}
+            onChange={(v: number | undefined) => handleBinFilterChange(v)}
+            style={{ width: 160 }}
+            placeholder="ทุก Bin"
+            allowClear
+            options={bins.map((b) => ({
+              value: b.id,
+              label: b.name ? `${b.code} — ${b.name}` : b.code,
+            }))}
+          />
+        )}
       </Space>
 
       {product && (
@@ -231,7 +301,6 @@ function StockCardContent() {
             background: '#fafafa',
             border: '1px solid #f0f0f0',
             borderRadius: 8,
-            maxWidth: 640,
           }}
         >
           <div>
@@ -255,6 +324,24 @@ function StockCardContent() {
                 }
                 text={`${product.currentStock} ${product.unit}`}
               />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#888' }}>ราคาทุน / หน่วย</div>
+            <div>{fmt(product.costPrice)} บาท</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#888' }}>ราคาขาย / หน่วย</div>
+            <div style={{ color: '#1677ff' }}>{fmt(product.salePrice)} บาท</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#888' }}>มูลค่าต้นทุนรวม</div>
+            <div style={{ fontWeight: 600 }}>{fmt(product.totalCostValue)} บาท</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#888' }}>มูลค่าราคาขายรวม</div>
+            <div style={{ fontWeight: 600, color: '#1677ff' }}>
+              {fmt(product.totalSaleValue)} บาท
             </div>
           </div>
         </div>

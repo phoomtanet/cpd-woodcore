@@ -133,11 +133,18 @@ export const StockRepository = {
     })
   },
 
-  findTransactionsByProduct(productId: number, from?: Date, to?: Date, warehouseId?: number) {
+  findTransactionsByProduct(
+    productId: number,
+    from?: Date,
+    to?: Date,
+    warehouseId?: number,
+    binId?: number
+  ) {
     return prisma.stockTransaction.findMany({
       where: {
         productId,
         ...(warehouseId && { warehouseId }),
+        ...(binId && { OR: [{ binId }, { toBinId: binId }] }),
         ...((from || to) && {
           createdAt: {
             ...(from && { gte: from }),
@@ -145,7 +152,14 @@ export const StockRepository = {
           },
         }),
       },
-      include: { product: true, createdBy: { select: { id: true, name: true } } },
+      include: {
+        product: true,
+        createdBy: { select: { id: true, name: true } },
+        warehouse: { select: { id: true, name: true, shortName: true } },
+        toWarehouse: { select: { id: true, name: true, shortName: true } },
+        bin: { select: { id: true, code: true, name: true } },
+        tobin: { select: { id: true, code: true, name: true } },
+      },
       orderBy: { createdAt: 'asc' },
     })
   },

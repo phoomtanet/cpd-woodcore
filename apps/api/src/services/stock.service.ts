@@ -101,7 +101,8 @@ export const StockService = {
     from?: string,
     to?: string,
     order: 'asc' | 'desc' = 'desc',
-    warehouseId?: number
+    warehouseId?: number,
+    binId?: number
   ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
@@ -110,8 +111,12 @@ export const StockService = {
       productId,
       from ? new Date(from) : undefined,
       to ? new Date(to) : undefined,
-      warehouseId
+      warehouseId,
+      binId
     )
+
+    const costPrice = Number(product.costPrice)
+    const salePrice = Number(product.salePrice)
 
     let balance = 0
     const rows = transactions.map((tx) => {
@@ -119,9 +124,20 @@ export const StockService = {
       else if (tx.type === 'out') balance -= tx.quantity
       else if (tx.type === 'adjust') balance = tx.quantity
       // transfer: balance unchanged
-      return { ...tx, balance }
+      return {
+        ...tx,
+        balance,
+        costValue: tx.quantity * costPrice,
+        saleValue: tx.quantity * salePrice,
+      }
     })
 
-    return { product, transactions: order === 'desc' ? rows.reverse() : rows }
+    const totalCostValue = product.currentStock * costPrice
+    const totalSaleValue = product.currentStock * salePrice
+
+    return {
+      product: { ...product, totalCostValue, totalSaleValue },
+      transactions: order === 'desc' ? rows.reverse() : rows,
+    }
   },
 }
