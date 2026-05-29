@@ -13,7 +13,7 @@
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
-    "prepare": "husky"
+    "prepare": "node -e \"if (!process.env.CI) process.exitCode=1\" || husky"
   },
   "lint-staged": {
     "apps/api/**/*.ts": [
