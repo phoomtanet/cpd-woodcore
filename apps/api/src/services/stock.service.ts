@@ -129,7 +129,21 @@ export const StockService = {
       if (tx.type === 'in') balance += tx.quantity
       else if (tx.type === 'out') balance -= tx.quantity
       else if (tx.type === 'adjust') balance = tx.quantity
-      // transfer: balance unchanged
+      else if (tx.type === 'transfer') {
+        if (binId != null) {
+          // bin-scoped: out when leaving this bin, in when arriving
+          if (tx.binId === binId) balance -= tx.quantity
+          else if (tx.toBinId === binId) balance += tx.quantity
+        } else if (warehouseId != null) {
+          // warehouse-scoped: only count inter-warehouse moves
+          if (tx.warehouseId === warehouseId && tx.toWarehouseId !== warehouseId)
+            balance -= tx.quantity
+          else if (tx.toWarehouseId === warehouseId && tx.warehouseId !== warehouseId)
+            balance += tx.quantity
+          // intra-warehouse bin transfer: unchanged
+        }
+        // no filter: total stock unchanged across all locations
+      }
       return {
         ...tx,
         balance,
