@@ -7,6 +7,12 @@ const adminToken = jwt.sign({ userId: 1, role: 'admin' }, SECRET, { expiresIn: '
 const managerToken = jwt.sign({ userId: 2, role: 'manager' }, SECRET, { expiresIn: '1h' })
 const staffToken = jwt.sign({ userId: 3, role: 'staff' }, SECRET, { expiresIn: '1h' })
 
+jest.mock('sharp', () => () => ({
+  resize: jest.fn().mockReturnThis(),
+  jpeg: jest.fn().mockReturnThis(),
+  toFile: jest.fn().mockResolvedValue({}),
+}))
+
 jest.mock('@cpd/db', () => ({
   __esModule: true,
   default: {

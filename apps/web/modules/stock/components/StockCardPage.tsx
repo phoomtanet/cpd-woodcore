@@ -7,14 +7,33 @@ import type { Dayjs } from 'dayjs'
 import PageHeader from '@/shared/components/PageHeader'
 import { stockApi } from '../services/stockApi'
 import { productsApi } from '@/modules/products/services/productsApi'
+import { masterApi } from '@/modules/master/services/masterApi'
+import { useMasterStore } from '@/store/masterStore'
 import type { Product } from '@/modules/products/types'
-import type { StockCardData, StockCardRow, TxType } from '../types'
+import type { BinLocationItem } from '@/types'
+import type {
+  StockCardData,
+  StockCardRow,
+  StockCardWarehouse,
+  StockCardBin,
+  TxType,
+} from '../types'
 
 const TX_CONFIG: Record<TxType, { bg: string; text: string; border: string; label: string }> = {
   in: { bg: '#f6ffed', text: '#52c41a', border: '#b7eb8f', label: 'รับเข้า' },
   out: { bg: '#fff2f0', text: '#ff4d4f', border: '#ffa39e', label: 'เบิกออก' },
   adjust: { bg: '#fff7e6', text: '#fa8c16', border: '#ffd591', label: 'ปรับสต๊อก' },
   transfer: { bg: '#e6f4ff', text: '#1677ff', border: '#91caff', label: 'โอนย้าย' },
+}
+
+function fmt(n: number) {
+  return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function whLabel(wh?: StockCardWarehouse | null, bin?: StockCardBin | null) {
+  if (!wh) return null
+  const whName = wh.shortName ?? wh.name
+  return bin ? `${whName} / ${bin.code}` : whName
 }
 
 function StockCardContent() {
@@ -26,6 +45,12 @@ function StockCardContent() {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
+  const warehouses = useMasterStore((s) => s.warehouses)
+  const multiWh = warehouses.length > 1
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | undefined>(undefined)
+  const [selectedBinId, setSelectedBinId] = useState<number | undefined>(undefined)
+  const [bins, setBins] = useState<BinLocationItem[]>([])
+  const [binStock, setBinStock] = useState<number | null>(null)
 
   useEffect(() => {
     productsApi
@@ -37,13 +62,15 @@ function StockCardContent() {
   const fetchCard = async (
     productId: number,
     range: [Dayjs | null, Dayjs | null] | null,
-    sortOrder: 'asc' | 'desc'
+    sortOrder: 'asc' | 'desc',
+    warehouseId?: number,
+    binId?: number
   ) => {
     setLoading(true)
     try {
       const from = range?.[0]?.startOf('day').toISOString()
       const to = range?.[1]?.endOf('day').toISOString()
-      const data = await stockApi.getStockCard(productId, from, to, sortOrder)
+      const data = await stockApi.getStockCard(productId, from, to, sortOrder, warehouseId, binId)
       setCardData(data)
     } catch {
       setCardData(null)
@@ -52,22 +79,64 @@ function StockCardContent() {
     }
   }
 
-  const handleSelect = (productId: number) => {
+  const handleSelect = async (productId: number) => {
     setSelectedId(productId)
     setPage(1)
-    fetchCard(productId, dateRange, order)
+    setBinStock(null)
+    if (selectedBinId != null) {
+      try {
+        const qty = await stockApi.getBinStock(productId, selectedBinId)
+        setBinStock(qty)
+      } catch {
+        // ignore
+      }
+    }
+    fetchCard(productId, dateRange, order, selectedWarehouseId, selectedBinId)
   }
 
   const handleRangeChange = (range: [Dayjs | null, Dayjs | null] | null) => {
     setDateRange(range)
     setPage(1)
-    if (selectedId !== undefined) fetchCard(selectedId, range, order)
+    if (selectedId !== undefined)
+      fetchCard(selectedId, range, order, selectedWarehouseId, selectedBinId)
   }
 
   const handleOrderChange = (value: 'asc' | 'desc') => {
     setOrder(value)
     setPage(1)
-    if (selectedId !== undefined) fetchCard(selectedId, dateRange, value)
+    if (selectedId !== undefined)
+      fetchCard(selectedId, dateRange, value, selectedWarehouseId, selectedBinId)
+  }
+
+  const handleWarehouseFilterChange = (wid: number | undefined) => {
+    setSelectedWarehouseId(wid)
+    setSelectedBinId(undefined)
+    setBinStock(null)
+    setBins([])
+    setPage(1)
+    if (wid) {
+      masterApi
+        .getBinsByWarehouse(wid, 'active')
+        .then(setBins)
+        .catch(() => {})
+    }
+    if (selectedId !== undefined) fetchCard(selectedId, dateRange, order, wid, undefined)
+  }
+
+  const handleBinFilterChange = async (bid: number | undefined) => {
+    setSelectedBinId(bid)
+    setPage(1)
+    if (bid != null && selectedId != null) {
+      try {
+        const qty = await stockApi.getBinStock(selectedId, bid)
+        setBinStock(qty)
+      } catch {
+        setBinStock(null)
+      }
+    } else {
+      setBinStock(null)
+    }
+    if (selectedId !== undefined) fetchCard(selectedId, dateRange, order, selectedWarehouseId, bid)
   }
 
   const columns: ColumnsType<StockCardRow> = [
@@ -82,7 +151,7 @@ function StockCardContent() {
       title: 'วันที่',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 150,
+      width: 120,
       render: (v: string) =>
         new Date(v).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }),
     },
@@ -90,7 +159,7 @@ function StockCardContent() {
       title: 'ประเภท',
       dataIndex: 'type',
       key: 'type',
-      width: 110,
+      width: 80,
       render: (type: TxType) => {
         const cfg = TX_CONFIG[type]
         if (!cfg) return <span>{type}</span>
@@ -120,6 +189,11 @@ function StockCardContent() {
       render: (_: unknown, row: StockCardRow) => {
         if (row.type === 'in') return <span style={{ color: '#52c41a' }}>+{row.quantity}</span>
         if (row.type === 'adjust') return <span style={{ color: '#fa8c16' }}>={row.quantity}</span>
+        if (row.type === 'transfer' && selectedBinId == null && selectedWarehouseId != null) {
+          const intraWh = row.warehouse?.id != null && row.warehouse.id === row.toWarehouse?.id
+          if (!intraWh && row.toWarehouse?.id === selectedWarehouseId)
+            return <span style={{ color: '#52c41a' }}>+{row.quantity}</span>
+        }
         return null
       },
     },
@@ -130,9 +204,33 @@ function StockCardContent() {
       align: 'right' as const,
       render: (_: unknown, row: StockCardRow) => {
         if (row.type === 'out') return <span style={{ color: '#ff4d4f' }}>-{row.quantity}</span>
-        if (row.type === 'transfer')
-          return <span style={{ color: '#1677ff' }}>~{row.quantity}</span>
+        if (row.type === 'transfer' && selectedBinId == null && selectedWarehouseId != null) {
+          const intraWh = row.warehouse?.id != null && row.warehouse.id === row.toWarehouse?.id
+          if (!intraWh && row.warehouse?.id === selectedWarehouseId)
+            return <span style={{ color: '#ff4d4f' }}>-{row.quantity}</span>
+        }
         return null
+      },
+    },
+    {
+      title: 'โอนย้าย',
+      key: 'transferQty',
+      width: 90,
+      align: 'right' as const,
+      render: (_: unknown, row: StockCardRow) => {
+        if (row.type !== 'transfer') return null
+        if (selectedBinId != null) {
+          // bin filter: show direction
+          if (row.tobin?.id === selectedBinId)
+            return <span style={{ color: '#52c41a' }}>+{row.quantity}</span>
+          return <span style={{ color: '#ff4d4f' }}>-{row.quantity}</span>
+        }
+        // warehouse filter: only intra-wh shows here; inter-wh shows in รับเข้า/เบิกออก
+        if (selectedWarehouseId != null) {
+          const intraWh = row.warehouse?.id != null && row.warehouse.id === row.toWarehouse?.id
+          if (!intraWh) return null
+        }
+        return <span style={{ color: '#1677ff' }}>~{row.quantity}</span>
       },
     },
     {
@@ -144,10 +242,44 @@ function StockCardContent() {
       render: (v: number) => <strong>{v}</strong>,
     },
     {
-      title: 'สถานที่',
-      key: 'location',
-      render: (_: unknown, row: StockCardRow) =>
-        row.fromLocation && row.toLocation ? `${row.fromLocation} → ${row.toLocation}` : null,
+      title: 'คลัง',
+      key: 'warehouse',
+      width: 140,
+      render: (_: unknown, row: StockCardRow) => {
+        if (row.type !== 'transfer') return whLabel(row.warehouse, row.bin) ?? '-'
+        // show the side that matches the active filter as "current location"
+        const incoming =
+          (selectedBinId != null && row.tobin?.id === selectedBinId) ||
+          (selectedBinId == null &&
+            selectedWarehouseId != null &&
+            row.toWarehouse?.id === selectedWarehouseId)
+        return incoming
+          ? (whLabel(row.toWarehouse, row.tobin) ?? '-')
+          : (whLabel(row.warehouse, row.bin) ?? '-')
+      },
+    },
+    {
+      title: 'ย้ายมาจาก',
+      key: 'transferOther',
+      width: 155,
+      render: (_: unknown, row: StockCardRow) => {
+        if (row.type !== 'transfer') return null
+        const incoming =
+          (selectedBinId != null && row.tobin?.id === selectedBinId) ||
+          (selectedBinId == null &&
+            selectedWarehouseId != null &&
+            row.toWarehouse?.id === selectedWarehouseId)
+        const other = incoming
+          ? whLabel(row.warehouse, row.bin)
+          : whLabel(row.toWarehouse, row.tobin)
+        if (!other) return null
+        return (
+          <span style={{ color: '#888', fontSize: 12 }}>
+            {incoming ? '← ' : '→ '}
+            {other}
+          </span>
+        )
+      },
     },
     {
       title: 'หมายเหตุ',
@@ -164,6 +296,10 @@ function StockCardContent() {
   ]
 
   const product = cardData?.product
+  const panelStock =
+    selectedBinId != null && binStock != null ? binStock : (product?.currentStock ?? 0)
+  const panelCostValue = panelStock * (product?.costPrice ?? 0)
+  const panelSaleValue = panelStock * (product?.salePrice ?? 0)
 
   return (
     <>
@@ -197,6 +333,29 @@ function StockCardContent() {
             { value: 'asc', label: 'เก่า → ใหม่' },
           ]}
         />
+        {multiWh && (
+          <Select
+            value={selectedWarehouseId}
+            onChange={(v: number | undefined) => handleWarehouseFilterChange(v)}
+            style={{ width: 160 }}
+            placeholder="ทุกคลัง"
+            allowClear
+            options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
+          />
+        )}
+        {bins.length > 0 && (
+          <Select
+            value={selectedBinId}
+            onChange={(v: number | undefined) => handleBinFilterChange(v)}
+            style={{ width: 160 }}
+            placeholder="ทุก Bin"
+            allowClear
+            options={bins.map((b) => ({
+              value: b.id,
+              label: b.name ? `${b.code} — ${b.name}` : b.code,
+            }))}
+          />
+        )}
       </Space>
 
       {product && (
@@ -210,7 +369,6 @@ function StockCardContent() {
             background: '#fafafa',
             border: '1px solid #f0f0f0',
             borderRadius: 8,
-            maxWidth: 640,
           }}
         >
           <div>
@@ -222,19 +380,31 @@ function StockCardContent() {
             <div>{product.sku}</div>
           </div>
           <div>
-            <div style={{ fontSize: 12, color: '#888' }}>ยอดคงเหลือ</div>
+            <div style={{ fontSize: 12, color: '#888' }}>
+              {selectedBinId != null ? 'ยอดคงเหลือ (Bin)' : 'ยอดคงเหลือ'}
+            </div>
             <div>
               <Badge
-                color={
-                  product.currentStock <= 0
-                    ? 'red'
-                    : product.currentStock < product.minStock
-                      ? 'orange'
-                      : 'green'
-                }
-                text={`${product.currentStock} ${product.unit}`}
+                color={panelStock <= 0 ? 'red' : panelStock < product.minStock ? 'orange' : 'green'}
+                text={`${panelStock} ${product.unit}`}
               />
             </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#888' }}>ราคาทุน / หน่วย</div>
+            <div>{fmt(product.costPrice)} บาท</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#888' }}>ราคาขาย / หน่วย</div>
+            <div style={{ color: '#1677ff' }}>{fmt(product.salePrice)} บาท</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#888' }}>มูลค่าต้นทุนรวม</div>
+            <div style={{ fontWeight: 600 }}>{fmt(panelCostValue)} บาท</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#888' }}>มูลค่าราคาขายรวม</div>
+            <div style={{ fontWeight: 600, color: '#1677ff' }}>{fmt(panelSaleValue)} บาท</div>
           </div>
         </div>
       )}

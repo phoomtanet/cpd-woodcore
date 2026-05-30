@@ -4,6 +4,44 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
+  // Seed warehouses
+  const warehouseData = [
+    { code: 'WH-MAIN', name: 'คลังหลัก', shortName: 'หลัก' },
+    { code: 'WH-BRANCH', name: 'คลังสาขา', shortName: 'สาขา' },
+  ]
+  for (const wh of warehouseData) {
+    await prisma.warehouse.upsert({
+      where: { code: wh.code },
+      update: {},
+      create: { ...wh, isActive: true },
+    })
+    console.log(`✓ Warehouse: ${wh.name} (${wh.code})`)
+  }
+
+  // Seed bin locations
+  const allWarehouses = await prisma.warehouse.findMany({ where: { isActive: true } })
+  const whByCode: Record<string, number> = {}
+  for (const wh of allWarehouses) whByCode[wh.code] = wh.id
+
+  const binData = [
+    { warehouseCode: 'WH-MAIN', code: 'A-01', name: 'ชั้น A แถว 1' },
+    { warehouseCode: 'WH-MAIN', code: 'A-02', name: 'ชั้น A แถว 2' },
+    { warehouseCode: 'WH-MAIN', code: 'B-01', name: 'ชั้น B แถว 1' },
+    { warehouseCode: 'WH-MAIN', code: 'B-02', name: 'ชั้น B แถว 2' },
+    { warehouseCode: 'WH-BRANCH', code: 'A-01', name: 'ชั้น A แถว 1' },
+    { warehouseCode: 'WH-BRANCH', code: 'A-02', name: 'ชั้น A แถว 2' },
+  ]
+  for (const bin of binData) {
+    const warehouseId = whByCode[bin.warehouseCode]
+    if (!warehouseId) continue
+    await prisma.binLocation.upsert({
+      where: { warehouseId_code: { warehouseId, code: bin.code } },
+      update: {},
+      create: { warehouseId, code: bin.code, name: bin.name, isActive: true },
+    })
+    console.log(`✓ Bin: [${bin.warehouseCode}] ${bin.code} — ${bin.name}`)
+  }
+
   // Seed categories
   const categories = ['พาเลท', 'ไม้แปรรูป', 'บรรจุภัณฑ์', 'วัตถุดิบ', 'อุปกรณ์', 'สินค้าสำเร็จรูป']
   for (const name of categories) {
@@ -151,11 +189,22 @@ async function main() {
     },
   ]
 
+  const mainWarehouseId = whByCode['WH-MAIN']!
+
   for (const p of products) {
     const product = await prisma.product.upsert({
       where: { sku: p.sku },
       update: { categoryId: p.categoryId },
       create: p,
+    })
+    await prisma.productStock.upsert({
+      where: { productId_warehouseId: { productId: product.id, warehouseId: mainWarehouseId } },
+      update: {},
+      create: {
+        productId: product.id,
+        warehouseId: mainWarehouseId,
+        quantity: product.currentStock,
+      },
     })
     console.log(`✓ Product: [${product.productType}] ${product.name} (${product.sku})`)
   }
@@ -179,6 +228,8 @@ async function main() {
     'master-types',
     'master-units',
     'master-categories',
+    'master-warehouses',
+    'master-bins',
   ]
 
   const DEFAULTS: Record<RoleKey, Record<string, PermDef>> = {
@@ -200,6 +251,8 @@ async function main() {
       'master-types': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
       'master-units': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
       'master-categories': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'master-warehouses': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
+      'master-bins': { canView: true, canCreate: false, canUpdate: false, canDelete: false },
     },
     staff: {
       dashboard: { canView: true, canCreate: false, canUpdate: false, canDelete: false },
@@ -216,6 +269,8 @@ async function main() {
       'master-types': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-units': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
       'master-categories': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-warehouses': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
+      'master-bins': { canView: false, canCreate: false, canUpdate: false, canDelete: false },
     },
   }
 

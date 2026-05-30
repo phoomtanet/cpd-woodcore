@@ -18,6 +18,8 @@ const MENU_STRUCTURE: MenuStructureEntry[] = [
   { type: 'item', menuKey: 'master-types', label: 'ประเภทสินค้า', indent: true },
   { type: 'item', menuKey: 'master-units', label: 'หน่วยนับ', indent: true },
   { type: 'item', menuKey: 'master-categories', label: 'หมวดหมู่', indent: true },
+  { type: 'item', menuKey: 'master-warehouses', label: 'คลัง', indent: true },
+  { type: 'item', menuKey: 'master-bins', label: 'Bin Locations', indent: true },
   { type: 'item', menuKey: 'products', label: 'สินค้า' },
   { type: 'group', label: 'คลังสินค้า' },
   { type: 'item', menuKey: 'stock-in', label: 'รับสินค้าเข้า', indent: true },

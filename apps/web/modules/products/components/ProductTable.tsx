@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Table, Tag, Button, Space, Popconfirm, App, Avatar, Modal } from 'antd'
+import { Table, Tag, Button, Space, Popconfirm, App, Avatar, Modal, Tooltip } from 'antd'
 import { EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import type { Product, ProductType } from '../types'
@@ -21,10 +21,37 @@ const PRODUCT_TYPE_COLORS: Record<ProductType, string> = {
   finished: 'green',
 }
 
-function StockBadge({ current, min }: { current: number; min: number }) {
-  if (current === 0) return <Tag color="error">ไม่มีสต๊อก</Tag>
-  if (current < min) return <Tag color="warning">{current} (ต่ำกว่ากำหนด)</Tag>
-  return <Tag color="success">{current}</Tag>
+function StockBadge({
+  current,
+  min,
+  stocks,
+}: {
+  current: number
+  min: number
+  stocks?: Product['stocks']
+}) {
+  const badge =
+    current === 0 ? (
+      <Tag color="error">ไม่มีสต๊อก</Tag>
+    ) : current < min ? (
+      <Tag color="warning">{current} (ต่ำกว่ากำหนด)</Tag>
+    ) : (
+      <Tag color="success">{current}</Tag>
+    )
+
+  if (!stocks || stocks.length <= 1) return badge
+
+  const tooltipContent = (
+    <div>
+      {stocks.map((ps) => (
+        <div key={ps.warehouseId}>
+          {ps.warehouse.shortName ?? ps.warehouse.name}: {ps.quantity}
+        </div>
+      ))}
+    </div>
+  )
+
+  return <Tooltip title={tooltipContent}>{badge}</Tooltip>
 }
 
 interface ProductTableProps {
@@ -127,7 +154,7 @@ export default function ProductTable({
       width: 150,
       align: 'center',
       render: (_: unknown, record: Product) => (
-        <StockBadge current={record.currentStock} min={record.minStock} />
+        <StockBadge current={record.currentStock} min={record.minStock} stocks={record.stocks} />
       ),
     },
     {

@@ -20,6 +20,9 @@ jest.mock('@cpd/db', () => ({
       create: jest.fn(),
       findMany: jest.fn(),
     },
+    productStock: {
+      findFirst: jest.fn(),
+    },
   },
 }))
 
@@ -28,6 +31,7 @@ const mockFindFirst = prisma.product.findFirst as jest.Mock
 const mockTransaction = prisma.$transaction as jest.Mock
 const mockFindMany = prisma.stockTransaction.findMany as jest.Mock
 const mockQueryRaw = prisma.$queryRaw as jest.Mock
+const mockProductStockFindFirst = prisma.productStock.findFirst as jest.Mock
 
 const MOCK_PRODUCT = {
   id: 1,
@@ -106,7 +110,7 @@ describe('POST /api/stock/in', () => {
 
   it('returns 201 and transaction for staff', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 15 }, MOCK_TX])
+    mockTransaction.mockResolvedValue(MOCK_TX)
     const res = await request(app)
       .post('/api/stock/in')
       .set('Authorization', `Bearer ${staffToken}`)
@@ -118,7 +122,7 @@ describe('POST /api/stock/in', () => {
 
   it('returns 201 for manager', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 15 }, MOCK_TX])
+    mockTransaction.mockResolvedValue(MOCK_TX)
     const res = await request(app)
       .post('/api/stock/in')
       .set('Authorization', `Bearer ${managerToken}`)
@@ -128,7 +132,7 @@ describe('POST /api/stock/in', () => {
 
   it('returns 201 for admin', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 15 }, MOCK_TX])
+    mockTransaction.mockResolvedValue(MOCK_TX)
     const res = await request(app)
       .post('/api/stock/in')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -138,10 +142,7 @@ describe('POST /api/stock/in', () => {
 
   it('accepts optional note', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
-    mockTransaction.mockResolvedValue([
-      { ...MOCK_PRODUCT, currentStock: 15 },
-      { ...MOCK_TX, note: 'รับจากซัพพลายเออร์' },
-    ])
+    mockTransaction.mockResolvedValue({ ...MOCK_TX, note: 'รับจากซัพพลายเออร์' })
     const res = await request(app)
       .post('/api/stock/in')
       .set('Authorization', `Bearer ${staffToken}`)
@@ -152,7 +153,7 @@ describe('POST /api/stock/in', () => {
 
   it('calls $transaction so currentStock and transaction are atomic', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 15 }, MOCK_TX])
+    mockTransaction.mockResolvedValue(MOCK_TX)
     await request(app)
       .post('/api/stock/in')
       .set('Authorization', `Bearer ${staffToken}`)
@@ -166,6 +167,16 @@ describe('POST /api/stock/in', () => {
       .set('Authorization', `Bearer ${staffToken}`)
       .send({ productId: 1, quantity: 1.5 })
     expect(res.status).toBe(400)
+  })
+
+  it('accepts optional warehouseId and binId', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockTransaction.mockResolvedValue({ ...MOCK_TX, warehouseId: 2, binId: 3 })
+    const res = await request(app)
+      .post('/api/stock/in')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 10, warehouseId: 2, binId: 3 })
+    expect(res.status).toBe(201)
   })
 })
 
@@ -204,8 +215,9 @@ describe('POST /api/stock/out', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns 400 when quantity exceeds currentStock', async () => {
+  it('returns 400 when quantity exceeds warehouse stock', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 2 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 2 })
     const res = await request(app)
       .post('/api/stock/out')
       .set('Authorization', `Bearer ${staffToken}`)
@@ -214,8 +226,9 @@ describe('POST /api/stock/out', () => {
     expect(res.body.error).toMatch(/insufficient stock/i)
   })
 
-  it('returns 400 when currentStock is exactly zero', async () => {
+  it('returns 400 when warehouse stock is exactly zero', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 0 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 0 })
     const res = await request(app)
       .post('/api/stock/out')
       .set('Authorization', `Bearer ${staffToken}`)
@@ -223,9 +236,20 @@ describe('POST /api/stock/out', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 201 when quantity equals currentStock (exact depletion)', async () => {
+  it('returns 400 when no ProductStock record exists for warehouse', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockProductStockFindFirst.mockResolvedValue(null)
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 1 })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 201 when quantity equals warehouse stock (exact depletion)', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 5 })
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 0 }, MOCK_OUT_TX])
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 5 })
+    mockTransaction.mockResolvedValue(MOCK_OUT_TX)
     const res = await request(app)
       .post('/api/stock/out')
       .set('Authorization', `Bearer ${staffToken}`)
@@ -236,7 +260,8 @@ describe('POST /api/stock/out', () => {
 
   it('returns 201 for manager', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 7 }, MOCK_OUT_TX])
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue(MOCK_OUT_TX)
     const res = await request(app)
       .post('/api/stock/out')
       .set('Authorization', `Bearer ${managerToken}`)
@@ -246,7 +271,8 @@ describe('POST /api/stock/out', () => {
 
   it('calls $transaction atomically on success', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 7 }, MOCK_OUT_TX])
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue(MOCK_OUT_TX)
     await request(app)
       .post('/api/stock/out')
       .set('Authorization', `Bearer ${staffToken}`)
@@ -256,7 +282,8 @@ describe('POST /api/stock/out', () => {
 
   it('returns 201 for admin', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 7 }, MOCK_OUT_TX])
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue(MOCK_OUT_TX)
     const res = await request(app)
       .post('/api/stock/out')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -270,6 +297,40 @@ describe('POST /api/stock/out', () => {
       .set('Authorization', `Bearer ${staffToken}`)
       .send({ productId: 1, quantity: 2.5 })
     expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when specific warehouseId has insufficient stock', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 20 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 3 })
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 10, warehouseId: 2 })
+    expect(res.status).toBe(400)
+    expect(res.body.error).toMatch(/insufficient stock/i)
+  })
+
+  it('returns 201 when specific warehouseId has sufficient stock', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 20 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 8 })
+    mockTransaction.mockResolvedValue({ ...MOCK_TX, type: 'out', quantity: 5, warehouseId: 2 })
+    const res = await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 5, warehouseId: 2 })
+    expect(res.status).toBe(201)
+    expect(res.body.data.type).toBe('out')
+  })
+
+  it('calls $transaction atomically when non-default warehouseId is specified', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue({ ...MOCK_TX, type: 'out', quantity: 3, warehouseId: 2 })
+    await request(app)
+      .post('/api/stock/out')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({ productId: 1, quantity: 3, warehouseId: 2 })
+    expect(mockTransaction).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -318,7 +379,7 @@ describe('POST /api/stock/adjust', () => {
 
   it('returns 201 and sets stock to given quantity', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
-    mockTransaction.mockResolvedValue([{ ...MOCK_PRODUCT, currentStock: 20 }, MOCK_ADJ_TX])
+    mockTransaction.mockResolvedValue(MOCK_ADJ_TX)
     const res = await request(app)
       .post('/api/stock/adjust')
       .set('Authorization', `Bearer ${managerToken}`)
@@ -330,10 +391,7 @@ describe('POST /api/stock/adjust', () => {
 
   it('allows adjusting to zero', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
-    mockTransaction.mockResolvedValue([
-      { ...MOCK_PRODUCT, currentStock: 0 },
-      { ...MOCK_ADJ_TX, quantity: 0 },
-    ])
+    mockTransaction.mockResolvedValue({ ...MOCK_ADJ_TX, quantity: 0 })
     const res = await request(app)
       .post('/api/stock/adjust')
       .set('Authorization', `Bearer ${managerToken}`)
@@ -343,10 +401,11 @@ describe('POST /api/stock/adjust', () => {
 
   it('accepts optional reason and note', async () => {
     mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
-    mockTransaction.mockResolvedValue([
-      { ...MOCK_PRODUCT, currentStock: 20 },
-      { ...MOCK_ADJ_TX, reason: 'นับสต๊อกจริง', note: 'ตรวจนับประจำปี' },
-    ])
+    mockTransaction.mockResolvedValue({
+      ...MOCK_ADJ_TX,
+      reason: 'นับสต๊อกจริง',
+      note: 'ตรวจนับประจำปี',
+    })
     const res = await request(app)
       .post('/api/stock/adjust')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -361,6 +420,16 @@ describe('POST /api/stock/adjust', () => {
       .set('Authorization', `Bearer ${managerToken}`)
       .send({ productId: 1, quantity: 10.5 })
     expect(res.status).toBe(400)
+  })
+
+  it('accepts optional warehouseId', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockTransaction.mockResolvedValue({ ...MOCK_ADJ_TX, warehouseId: 2 })
+    const res = await request(app)
+      .post('/api/stock/adjust')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ productId: 1, quantity: 20, warehouseId: 2 })
+    expect(res.status).toBe(201)
   })
 })
 
@@ -423,8 +492,9 @@ describe('POST /api/stock/transfer', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns 400 when transfer quantity exceeds stock', async () => {
+  it('returns 400 when transfer quantity exceeds warehouse stock', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 3 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 3 })
     const res = await request(app)
       .post('/api/stock/transfer')
       .set('Authorization', `Bearer ${managerToken}`)
@@ -434,7 +504,8 @@ describe('POST /api/stock/transfer', () => {
 
   it('returns 201 and records transfer for manager', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
-    mockTransaction.mockResolvedValue([MOCK_TRANSFER_TX])
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue(MOCK_TRANSFER_TX)
     const res = await request(app)
       .post('/api/stock/transfer')
       .set('Authorization', `Bearer ${managerToken}`)
@@ -447,7 +518,8 @@ describe('POST /api/stock/transfer', () => {
 
   it('returns 201 for admin', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
-    mockTransaction.mockResolvedValue([MOCK_TRANSFER_TX])
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue(MOCK_TRANSFER_TX)
     const res = await request(app)
       .post('/api/stock/transfer')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -455,9 +527,10 @@ describe('POST /api/stock/transfer', () => {
     expect(res.status).toBe(201)
   })
 
-  it('returns 201 when transfer quantity equals currentStock (exact)', async () => {
+  it('returns 201 when transfer quantity equals warehouse stock (exact)', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 5 })
-    mockTransaction.mockResolvedValue([MOCK_TRANSFER_TX])
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 5 })
+    mockTransaction.mockResolvedValue(MOCK_TRANSFER_TX)
     const res = await request(app)
       .post('/api/stock/transfer')
       .set('Authorization', `Bearer ${managerToken}`)
@@ -491,7 +564,8 @@ describe('POST /api/stock/transfer', () => {
 
   it('preserves note in response', async () => {
     mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
-    mockTransaction.mockResolvedValue([{ ...MOCK_TRANSFER_TX, note: 'ย้ายเพื่อผลิต' }])
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue({ ...MOCK_TRANSFER_TX, note: 'ย้ายเพื่อผลิต' })
     const res = await request(app)
       .post('/api/stock/transfer')
       .set('Authorization', `Bearer ${managerToken}`)
@@ -504,6 +578,91 @@ describe('POST /api/stock/transfer', () => {
       })
     expect(res.status).toBe(201)
     expect(res.body.data.note).toBe('ย้ายเพื่อผลิต')
+  })
+
+  it('accepts optional fromWarehouseId and toWarehouseId for cross-warehouse transfer', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue({
+      ...MOCK_TRANSFER_TX,
+      warehouseId: 1,
+      toWarehouseId: 2,
+    })
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({
+        productId: 1,
+        quantity: 5,
+        fromLocation: 'คลังหลัก',
+        toLocation: 'คลังสาขา',
+        fromWarehouseId: 1,
+        toWarehouseId: 2,
+      })
+    expect(res.status).toBe(201)
+  })
+
+  it('returns 400 when cross-warehouse fromWarehouse has insufficient stock', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 20 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 3 })
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({
+        productId: 1,
+        quantity: 10,
+        fromLocation: 'คลังหลัก',
+        toLocation: 'คลังสาขา',
+        fromWarehouseId: 1,
+        toWarehouseId: 2,
+      })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 201 for intra-warehouse transfer (same fromWarehouseId and toWarehouseId, different bins)', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 10 })
+    mockTransaction.mockResolvedValue({
+      ...MOCK_TRANSFER_TX,
+      warehouseId: 1,
+      toWarehouseId: 1,
+      binId: 1,
+      toBinId: 2,
+    })
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({
+        productId: 1,
+        quantity: 5,
+        fromLocation: 'คลังหลัก / Bin A',
+        toLocation: 'คลังหลัก / Bin B',
+        fromWarehouseId: 1,
+        toWarehouseId: 1,
+        binId: 1,
+        toBinId: 2,
+      })
+    expect(res.status).toBe(201)
+    expect(res.body.data.type).toBe('transfer')
+  })
+
+  it('returns 400 for intra-warehouse transfer when warehouse has insufficient stock', async () => {
+    mockFindFirst.mockResolvedValue({ ...MOCK_PRODUCT, currentStock: 10 })
+    mockProductStockFindFirst.mockResolvedValue({ quantity: 2 })
+    const res = await request(app)
+      .post('/api/stock/transfer')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({
+        productId: 1,
+        quantity: 5,
+        fromLocation: 'คลังหลัก / Bin A',
+        toLocation: 'คลังหลัก / Bin B',
+        fromWarehouseId: 1,
+        toWarehouseId: 1,
+        binId: 1,
+        toBinId: 2,
+      })
+    expect(res.status).toBe(400)
   })
 })
 
@@ -617,6 +776,43 @@ describe('GET /api/stock/card/:productId', () => {
       .set('Authorization', `Bearer ${staffToken}`)
     expect(res.status).toBe(200)
     expect(res.body.data.transactions[0].createdBy.name).toBe('admin')
+  })
+
+  it('accepts optional warehouseId query param', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([makeTx(1, 'in', 10)])
+    const res = await request(app)
+      .get('/api/stock/card/1?warehouseId=2')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('returns 400 for invalid warehouseId query param', async () => {
+    const res = await request(app)
+      .get('/api/stock/card/1?warehouseId=abc')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns only transactions matching warehouseId filter', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([makeTx(1, 'in', 10), makeTx(2, 'in', 5)])
+    const res = await request(app)
+      .get('/api/stock/card/1?warehouseId=2')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data.transactions).toHaveLength(2)
+    expect(res.body.data.product.id).toBe(1)
+  })
+
+  it('returns all transactions when no warehouseId filter (all warehouses)', async () => {
+    mockFindFirst.mockResolvedValue(MOCK_PRODUCT)
+    mockFindMany.mockResolvedValue([makeTx(1, 'in', 10), makeTx(2, 'out', 3), makeTx(3, 'in', 7)])
+    const res = await request(app)
+      .get('/api/stock/card/1')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data.transactions).toHaveLength(3)
   })
 })
 
@@ -840,5 +1036,23 @@ describe('GET /api/stock/low-alert', () => {
     expect(res.status).toBe(200)
     const ids = res.body.data.map((p: { id: number }) => p.id)
     expect(ids).not.toContain(OK_PRODUCT.id)
+  })
+
+  it('uses $queryRaw (ProductStock aggregate) not findMany to compute low stock', async () => {
+    mockQueryRaw.mockResolvedValue([LOW_PRODUCT])
+    await request(app).get('/api/stock/low-alert').set('Authorization', `Bearer ${staffToken}`)
+    expect(mockQueryRaw).toHaveBeenCalledTimes(1)
+    expect(mockFindMany).not.toHaveBeenCalled()
+  })
+
+  it('shows product as low-stock when aggregate of all-warehouse quantities is below minStock', async () => {
+    const multiWhLow = { ...MOCK_PRODUCT, id: 5, currentStock: 4, minStock: 10 }
+    mockQueryRaw.mockResolvedValue([multiWhLow])
+    const res = await request(app)
+      .get('/api/stock/low-alert')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data[0].id).toBe(5)
+    expect(res.body.data[0].currentStock).toBe(4)
   })
 })

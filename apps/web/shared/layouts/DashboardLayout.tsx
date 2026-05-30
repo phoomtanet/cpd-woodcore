@@ -17,6 +17,7 @@ import {
   SettingOutlined,
   UserOutlined,
   LogoutOutlined,
+  BankOutlined,
 } from '@ant-design/icons'
 import { ROUTES } from '@/constants'
 import { useAuthStore } from '@/store/authStore'
@@ -61,6 +62,12 @@ const ALL_MENU_ITEMS: MenuDef[] = [
         icon: <AppstoreOutlined />,
         label: 'หมวดหมู่',
         menuKey: 'master-categories',
+      },
+      {
+        key: ROUTES.SETTINGS_MASTER_WAREHOUSES,
+        icon: <BankOutlined />,
+        label: 'คลัง',
+        menuKey: 'master-warehouses',
       },
     ],
   },
@@ -134,18 +141,37 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, clearAuth } = useAuthStore()
   const { clearPermissions, canView } = usePermissionStore()
   const { clearRoles, getLabelByName } = useRolesStore()
-  const { productTypes, units, categories, setProductTypes, setUnits, setCategories, clearMaster } =
-    useMasterStore()
+  const {
+    productTypes,
+    units,
+    categories,
+    warehouses,
+    setProductTypes,
+    setUnits,
+    setCategories,
+    setWarehouses,
+    clearMaster,
+  } = useMasterStore()
   const { lowStockCount, setLowStockCount, clearAlerts } = useAlertsStore()
 
   useEffect(() => {
-    const needsLoad = productTypes.length === 0 || units.length === 0 || categories.length === 0
+    const needsLoad =
+      productTypes.length === 0 ||
+      units.length === 0 ||
+      categories.length === 0 ||
+      warehouses.length === 0
     if (needsLoad) {
-      Promise.all([masterApi.getProductTypes(), masterApi.getUnits(), masterApi.getCategories()])
-        .then(([pts, us, cats]) => {
+      Promise.all([
+        masterApi.getProductTypes(),
+        masterApi.getUnits(),
+        masterApi.getCategories(),
+        masterApi.getWarehouses(),
+      ])
+        .then(([pts, us, cats, whs]) => {
           setProductTypes(pts)
           setUnits(us)
           setCategories(cats)
+          setWarehouses(whs)
         })
         .catch(() => {})
     }
@@ -153,9 +179,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     productTypes.length,
     units.length,
     categories.length,
+    warehouses.length,
     setProductTypes,
     setUnits,
     setCategories,
+    setWarehouses,
   ])
 
   useEffect(() => {

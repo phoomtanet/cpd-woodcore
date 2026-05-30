@@ -100,4 +100,81 @@ export const MasterService = {
     if (!item) throw new NotFoundError('ไม่พบหมวดหมู่')
     return MasterRepository.deleteCategoryById(id)
   },
+
+  // Warehouses
+  findAllWarehouses(status: 'active' | 'all' = 'active') {
+    return MasterRepository.findAllWarehouses(status)
+  },
+
+  async createWarehouse(
+    data: { code: string; name: string; shortName?: string; address?: string },
+    userId: number
+  ) {
+    const existing = await MasterRepository.findWarehouseByCode(data.code)
+    if (existing) throw new ConflictError('รหัสคลังนี้มีอยู่แล้ว')
+    return MasterRepository.createWarehouse({ ...data, createdById: userId })
+  },
+
+  async updateWarehouse(
+    id: number,
+    data: { code?: string; name?: string; shortName?: string; address?: string },
+    userId: number
+  ) {
+    const item = await MasterRepository.findWarehouseById(id)
+    if (!item) throw new NotFoundError('ไม่พบคลังสินค้า')
+    if (data.code && data.code !== item.code) {
+      const conflict = await MasterRepository.findWarehouseByCode(data.code)
+      if (conflict) throw new ConflictError('รหัสคลังนี้มีอยู่แล้ว')
+    }
+    return MasterRepository.updateWarehouse(id, { ...data, updatedById: userId })
+  },
+
+  async toggleWarehouseStatus(id: number, isActive: boolean, userId: number) {
+    const item = await MasterRepository.findWarehouseById(id)
+    if (!item) throw new NotFoundError('ไม่พบคลังสินค้า')
+    return MasterRepository.updateWarehouseStatus(id, isActive, userId)
+  },
+
+  async deleteWarehouseById(id: number) {
+    const item = await MasterRepository.findWarehouseById(id)
+    if (!item) throw new NotFoundError('ไม่พบคลังสินค้า')
+    return MasterRepository.deleteWarehouseById(id)
+  },
+
+  // Bin Locations
+  async findBinsByWarehouse(warehouseId: number, status: 'active' | 'all' = 'active') {
+    const warehouse = await MasterRepository.findWarehouseById(warehouseId)
+    if (!warehouse) throw new NotFoundError('ไม่พบคลังสินค้า')
+    return MasterRepository.findBinsByWarehouse(warehouseId, status)
+  },
+
+  async createBin(data: { warehouseId: number; code: string; name?: string }, userId: number) {
+    const warehouse = await MasterRepository.findWarehouseById(data.warehouseId)
+    if (!warehouse) throw new NotFoundError('ไม่พบคลังสินค้า')
+    const existing = await MasterRepository.findBinByWarehouseAndCode(data.warehouseId, data.code)
+    if (existing) throw new ConflictError('รหัส Bin นี้มีอยู่แล้วในคลังนี้')
+    return MasterRepository.createBin({ ...data, createdById: userId })
+  },
+
+  async updateBin(id: number, data: { code?: string; name?: string }, userId: number) {
+    const item = await MasterRepository.findBinById(id)
+    if (!item) throw new NotFoundError('ไม่พบ Bin')
+    if (data.code && data.code !== item.code) {
+      const conflict = await MasterRepository.findBinByWarehouseAndCode(item.warehouseId, data.code)
+      if (conflict) throw new ConflictError('รหัส Bin นี้มีอยู่แล้วในคลังนี้')
+    }
+    return MasterRepository.updateBin(id, { ...data, updatedById: userId })
+  },
+
+  async toggleBinStatus(id: number, isActive: boolean, userId: number) {
+    const item = await MasterRepository.findBinById(id)
+    if (!item) throw new NotFoundError('ไม่พบ Bin')
+    return MasterRepository.updateBinStatus(id, isActive, userId)
+  },
+
+  async deleteBinById(id: number) {
+    const item = await MasterRepository.findBinById(id)
+    if (!item) throw new NotFoundError('ไม่พบ Bin')
+    return MasterRepository.deleteBinById(id)
+  },
 }

@@ -1,5 +1,12 @@
 import api from '@/services/api'
-import type { ApiResponse, ProductTypeItem, UnitItem, CategoryItem } from '@/types'
+import type {
+  ApiResponse,
+  ProductTypeItem,
+  UnitItem,
+  CategoryItem,
+  WarehouseItem,
+  BinLocationItem,
+} from '@/types'
 
 export const masterApi = {
   getProductTypes: (status: 'active' | 'all' = 'active') =>
@@ -55,4 +62,47 @@ export const masterApi = {
       .then((r) => r.data.data),
 
   deleteCategory: (id: number) => api.delete(`/master/categories/${id}`),
+
+  getWarehouses: (status: 'active' | 'all' = 'active') =>
+    api
+      .get<ApiResponse<WarehouseItem[]>>(`/master/warehouses?status=${status}`)
+      .then((r) => r.data.data),
+
+  createWarehouse: (dto: { code: string; name: string; shortName?: string; address?: string }) =>
+    api.post<ApiResponse<WarehouseItem>>('/master/warehouses', dto).then((r) => r.data.data),
+
+  updateWarehouse: (
+    id: number,
+    dto: { code?: string; name?: string; shortName?: string; address?: string }
+  ) =>
+    api.put<ApiResponse<WarehouseItem>>(`/master/warehouses/${id}`, dto).then((r) => r.data.data),
+
+  toggleWarehouseStatus: (id: number, isActive: boolean) =>
+    api
+      .patch<ApiResponse<WarehouseItem>>(`/master/warehouses/${id}/status`, { isActive })
+      .then((r) => r.data.data),
+
+  deleteWarehouse: (id: number) => api.delete(`/master/warehouses/${id}`),
+
+  getBinsByWarehouse: (warehouseId: number, status: 'active' | 'all' = 'all') =>
+    api
+      .get<
+        ApiResponse<BinLocationItem[]>
+      >(`/master/warehouses/${warehouseId}/bins?status=${status}`)
+      .then((r) => r.data.data),
+
+  createBin: (dto: { warehouseId: number; code: string; name?: string }) =>
+    api.post<ApiResponse<BinLocationItem>>('/master/bin-locations', dto).then((r) => r.data.data),
+
+  updateBin: (id: number, dto: { code?: string; name?: string }) =>
+    api
+      .put<ApiResponse<BinLocationItem>>(`/master/bin-locations/${id}`, dto)
+      .then((r) => r.data.data),
+
+  toggleBinStatus: (id: number, isActive: boolean) =>
+    api
+      .patch<ApiResponse<BinLocationItem>>(`/master/bin-locations/${id}/status`, { isActive })
+      .then((r) => r.data.data),
+
+  deleteBin: (id: number) => api.delete(`/master/bin-locations/${id}`),
 }

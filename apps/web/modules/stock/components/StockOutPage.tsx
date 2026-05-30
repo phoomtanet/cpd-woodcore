@@ -1,13 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Form, Select, InputNumber, Input, Button, Alert, App } from 'antd'
+import { Form, Select, InputNumber, Input, Button, Alert, App, Spin } from 'antd'
 import PageHeader from '@/shared/components/PageHeader'
 import { stockApi } from '../services/stockApi'
 import { productsApi } from '@/modules/products/services/productsApi'
+import { masterApi } from '@/modules/master/services/masterApi'
 import { usePermissionStore } from '@/store/permissionStore'
+import { useMasterStore } from '@/store/masterStore'
 import { syncAlerts } from '@/store/alertsStore'
+import WarehouseStockBadge from './WarehouseStockBadge'
 import type { Product } from '@/modules/products/types'
+import type { BinLocationItem } from '@/types'
 
 function StockOutForm() {
   const [form] = Form.useForm()
@@ -15,21 +19,125 @@ function StockOutForm() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
   const canCreate = usePermissionStore((s) => s.canCreate('stock-out'))
+  const warehouses = useMasterStore((s) => s.warehouses)
+  const multiWh = warehouses.length > 1
+  const [bins, setBins] = useState<BinLocationItem[]>([])
+  const [selectedProductId, setSelectedProductId] = useState<number | undefined>(undefined)
+  const [freshProduct, setFreshProduct] = useState<Product | null>(null)
+  const [stockLoading, setStockLoading] = useState(false)
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | undefined>(() =>
+    warehouses.length === 1 ? warehouses[0]?.id : undefined
+  )
+  const [selectedBinId, setSelectedBinId] = useState<number | undefined>(undefined)
+  const [binStock, setBinStock] = useState<number | null>(null)
+  const [binStockLoading, setBinStockLoading] = useState(false)
+  const [enteredQty, setEnteredQty] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     productsApi
       .getAll({ status: 'active' })
       .then(setProducts)
       .catch(() => {})
-  }, [])
+    if (!multiWh && warehouses[0]) {
+      masterApi
+        .getBinsByWarehouse(warehouses[0].id, 'active')
+        .then(setBins)
+        .catch(() => {})
+    }
+  }, [multiWh, warehouses])
 
-  const onFinish = async (values: { productId: number; quantity: number; note?: string }) => {
-    setLoading(true)
+  const selectedProduct = freshProduct ?? products.find((p) => p.id === selectedProductId) ?? null
+  const effectiveWarehouse = multiWh
+    ? warehouses.find((w) => w.id === selectedWarehouseId)
+    : warehouses[0]
+  const effectiveWarehouseId = effectiveWarehouse?.id
+  const warehouseStock =
+    selectedProduct && effectiveWarehouseId != null
+      ? (selectedProduct.stocks?.find((s) => s.warehouseId === effectiveWarehouseId)?.quantity ??
+        null)
+      : null
+  const displayStock = selectedBinId != null ? binStock : warehouseStock
+  const selectedBin = bins.find((b) => b.id === selectedBinId) ?? null
+  const locationLabel = effectiveWarehouse
+    ? selectedBin
+      ? `${effectiveWarehouse.shortName ?? effectiveWarehouse.name} / ${selectedBin.code}`
+      : (effectiveWarehouse.shortName ?? effectiveWarehouse.name)
+    : undefined
+  const qtyExceedsStock =
+    displayStock !== null && enteredQty !== undefined && enteredQty > displayStock
+
+  const handleProductChange = async (pid: number) => {
+    setSelectedProductId(pid)
+    setFreshProduct(null)
+    setStockLoading(true)
     try {
-      await stockApi.stockOut(values)
+      const p = await productsApi.getById(pid)
+      setFreshProduct(p)
+    } catch {
+      // ถ้า fetch ไม่ได้ ใช้ข้อมูลจาก list แทน
+    } finally {
+      setStockLoading(false)
+    }
+  }
+
+  const handleWarehouseChange = async (wid: number) => {
+    setSelectedWarehouseId(wid)
+    setSelectedBinId(undefined)
+    setBinStock(null)
+    form.setFieldValue('binId', undefined)
+    setBins([])
+    try {
+      const b = await masterApi.getBinsByWarehouse(wid, 'active')
+      setBins(b)
+    } catch {
+      // bin fetch is optional — ignore errors
+    }
+  }
+
+  const handleBinChange = async (bid: number | undefined) => {
+    setSelectedBinId(bid)
+    if (bid == null || selectedProductId == null) {
+      setBinStock(null)
+      return
+    }
+    setBinStockLoading(true)
+    try {
+      const qty = await stockApi.getBinStock(selectedProductId, bid)
+      setBinStock(qty)
+    } catch {
+      setBinStock(null)
+    } finally {
+      setBinStockLoading(false)
+    }
+  }
+
+  const onFinish = async (values: {
+    productId: number
+    quantity: number
+    warehouseId?: number
+    binId?: number
+    note?: string
+  }) => {
+    setLoading(true)
+    const warehouseId = multiWh ? values.warehouseId : warehouses[0]?.id
+    try {
+      await stockApi.stockOut({ ...values, warehouseId })
       message.success('เบิกสินค้าออกเรียบร้อย')
       syncAlerts()
       form.resetFields()
+      setSelectedProductId(undefined)
+      setFreshProduct(null)
+      setSelectedWarehouseId(multiWh ? undefined : warehouses[0]?.id)
+      setSelectedBinId(undefined)
+      setBinStock(null)
+      setEnteredQty(undefined)
+      setBins([])
+      if (!multiWh && warehouses[0]) {
+        masterApi
+          .getBinsByWarehouse(warehouses[0].id, 'active')
+          .then(setBins)
+          .catch(() => {})
+      }
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
       message.error(typeof msg === 'string' ? msg : 'เกิดข้อผิดพลาด')
@@ -48,29 +156,84 @@ function StockOutForm() {
           style={{ marginBottom: 16, maxWidth: 480 }}
         />
       )}
-      <Form form={form} layout="vertical" onFinish={onFinish} style={{ maxWidth: 480 }}>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        style={{ maxWidth: 480 }}
+        onValuesChange={(changed: Record<string, unknown>) => {
+          if ('quantity' in changed) setEnteredQty(changed.quantity as number | undefined)
+        }}
+      >
         <Form.Item
           name="productId"
           label="สินค้า"
           rules={[{ required: true, message: 'กรุณาเลือกสินค้า' }]}
+          extra={
+            <Spin spinning={stockLoading || binStockLoading} size="small">
+              <WarehouseStockBadge
+                quantity={displayStock}
+                unit={selectedProduct?.unit ?? ''}
+                minStock={selectedProduct?.minStock ?? 0}
+                location={locationLabel}
+              />
+            </Spin>
+          }
         >
           <Select
             showSearch
             options={products.map((p) => ({
               value: p.id,
-              label: `${p.name} (${p.sku}) — คงเหลือ ${p.currentStock} ${p.unit}`,
+              label: `${p.name} (${p.sku})`,
             }))}
             filterOption={(input: string, opt?: { label?: unknown }) =>
               ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())
             }
             placeholder="เลือกสินค้า"
+            onChange={handleProductChange}
           />
         </Form.Item>
+
+        {multiWh && (
+          <Form.Item
+            name="warehouseId"
+            label="คลัง"
+            rules={[{ required: true, message: 'กรุณาเลือกคลัง' }]}
+          >
+            <Select
+              options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
+              placeholder="เลือกคลัง"
+              onChange={handleWarehouseChange}
+            />
+          </Form.Item>
+        )}
+
+        {bins.length > 0 && (
+          <Form.Item name="binId" label="Bin Location">
+            <Select
+              options={bins.map((b) => ({
+                value: b.id,
+                label: b.name ? `${b.code} — ${b.name}` : b.code,
+              }))}
+              placeholder="เลือก Bin (ถ้ามี)"
+              allowClear
+              onChange={handleBinChange}
+            />
+          </Form.Item>
+        )}
 
         <Form.Item
           name="quantity"
           label="จำนวนที่เบิกออก"
           rules={[{ required: true, message: 'กรุณาระบุจำนวน' }]}
+          extra={
+            qtyExceedsStock ? (
+              <span style={{ color: '#ff4d4f', fontSize: 13 }}>
+                ⚠ เกินสต๊อก{selectedBinId != null ? 'ใน Bin' : 'ในคลัง'} (มีอยู่ {displayStock}{' '}
+                {selectedProduct?.unit})
+              </span>
+            ) : undefined
+          }
         >
           <InputNumber min={1} style={{ width: '100%' }} placeholder="0" />
         </Form.Item>

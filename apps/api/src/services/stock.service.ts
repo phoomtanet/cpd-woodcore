@@ -4,22 +4,36 @@ import { NotFoundError, BadRequestError } from '../utils/errors'
 import type { TxType } from '@prisma/client'
 
 export const StockService = {
-  async stockIn(productId: number, quantity: number, userId: number, note?: string) {
+  async stockIn(
+    productId: number,
+    quantity: number,
+    userId: number,
+    note?: string,
+    warehouseId = 1,
+    binId?: number
+  ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
-    const [, transaction] = await StockRepository.stockIn(productId, quantity, userId, note)
-    return transaction
+    return StockRepository.stockIn(productId, quantity, userId, note, warehouseId, binId)
   },
 
-  async stockOut(productId: number, quantity: number, userId: number, note?: string) {
+  async stockOut(
+    productId: number,
+    quantity: number,
+    userId: number,
+    note?: string,
+    warehouseId = 1,
+    binId?: number
+  ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
-    if (product.currentStock < quantity)
+    const warehouseStock = await StockRepository.findProductStock(productId, warehouseId)
+    const availableQty = warehouseStock ? warehouseStock.quantity : 0
+    if (availableQty < quantity)
       throw new BadRequestError(
-        `Insufficient stock: available ${product.currentStock}, requested ${quantity}`
+        `Insufficient stock: available ${availableQty}, requested ${quantity}`
       )
-    const [, transaction] = await StockRepository.stockOut(productId, quantity, userId, note)
-    return transaction
+    return StockRepository.stockOut(productId, quantity, userId, note, warehouseId, binId)
   },
 
   async stockAdjust(
@@ -27,18 +41,12 @@ export const StockService = {
     newQuantity: number,
     userId: number,
     reason?: string,
-    note?: string
+    note?: string,
+    warehouseId = 1
   ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
-    const [, transaction] = await StockRepository.stockAdjust(
-      productId,
-      newQuantity,
-      userId,
-      reason,
-      note
-    )
-    return transaction
+    return StockRepository.stockAdjust(productId, newQuantity, userId, reason, note, warehouseId)
   },
 
   async stockTransfer(
@@ -47,23 +55,32 @@ export const StockService = {
     fromLocation: string,
     toLocation: string,
     userId: number,
-    note?: string
+    note?: string,
+    fromWarehouseId = 1,
+    toWarehouseId = 1,
+    binId?: number,
+    toBinId?: number
   ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
-    if (product.currentStock < quantity)
+    const warehouseStock = await StockRepository.findProductStock(productId, fromWarehouseId)
+    const availableQty = warehouseStock ? warehouseStock.quantity : 0
+    if (availableQty < quantity)
       throw new BadRequestError(
-        `Insufficient stock: available ${product.currentStock}, requested ${quantity}`
+        `Insufficient stock: available ${availableQty}, requested ${quantity}`
       )
-    const [transaction] = await StockRepository.stockTransfer(
+    return StockRepository.stockTransfer(
       productId,
       quantity,
       fromLocation,
       toLocation,
       userId,
-      note
+      note,
+      fromWarehouseId,
+      toWarehouseId,
+      binId,
+      toBinId
     )
-    return transaction
   },
 
   async getHistory(params: { type?: TxType; productId?: number; from?: string; to?: string }) {
@@ -79,11 +96,19 @@ export const StockService = {
     return StockRepository.findLowStock()
   },
 
+  async getBinStock(productId: number, binId: number) {
+    const product = await ProductRepository.findById(productId)
+    if (!product) throw new NotFoundError('Product not found')
+    return StockRepository.findBinStock(productId, binId)
+  },
+
   async getStockCard(
     productId: number,
     from?: string,
     to?: string,
-    order: 'asc' | 'desc' = 'desc'
+    order: 'asc' | 'desc' = 'desc',
+    warehouseId?: number,
+    binId?: number
   ) {
     const product = await ProductRepository.findById(productId)
     if (!product) throw new NotFoundError('Product not found')
@@ -91,18 +116,48 @@ export const StockService = {
     const transactions = await StockRepository.findTransactionsByProduct(
       productId,
       from ? new Date(from) : undefined,
-      to ? new Date(to) : undefined
+      to ? new Date(to) : undefined,
+      warehouseId,
+      binId
     )
+
+    const costPrice = Number(product.costPrice)
+    const salePrice = Number(product.salePrice)
 
     let balance = 0
     const rows = transactions.map((tx) => {
       if (tx.type === 'in') balance += tx.quantity
       else if (tx.type === 'out') balance -= tx.quantity
       else if (tx.type === 'adjust') balance = tx.quantity
-      // transfer: balance unchanged
-      return { ...tx, balance }
+      else if (tx.type === 'transfer') {
+        if (binId != null) {
+          // bin-scoped: out when leaving this bin, in when arriving
+          if (tx.binId === binId) balance -= tx.quantity
+          else if (tx.toBinId === binId) balance += tx.quantity
+        } else if (warehouseId != null) {
+          // warehouse-scoped: only count inter-warehouse moves
+          if (tx.warehouseId === warehouseId && tx.toWarehouseId !== warehouseId)
+            balance -= tx.quantity
+          else if (tx.toWarehouseId === warehouseId && tx.warehouseId !== warehouseId)
+            balance += tx.quantity
+          // intra-warehouse bin transfer: unchanged
+        }
+        // no filter: total stock unchanged across all locations
+      }
+      return {
+        ...tx,
+        balance,
+        costValue: tx.quantity * costPrice,
+        saleValue: tx.quantity * salePrice,
+      }
     })
 
-    return { product, transactions: order === 'desc' ? rows.reverse() : rows }
+    const totalCostValue = product.currentStock * costPrice
+    const totalSaleValue = product.currentStock * salePrice
+
+    return {
+      product: { ...product, totalCostValue, totalSaleValue },
+      transactions: order === 'desc' ? rows.reverse() : rows,
+    }
   },
 }

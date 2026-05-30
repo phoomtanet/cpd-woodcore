@@ -162,4 +162,110 @@ export const MasterController = {
       next(err)
     }
   },
+
+  // Warehouses
+  async listWarehouses(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const status = req.query.status === 'all' ? 'all' : 'active'
+      const data = await MasterService.findAllWarehouses(status)
+      res.json({ data, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async createWarehouse(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.createWarehouse(req.body, req.user!.userId)
+      res.status(201).json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateWarehouse(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.updateWarehouse(
+        Number(req.params.id),
+        req.body,
+        req.user!.userId
+      )
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateWarehouseStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.toggleWarehouseStatus(
+        Number(req.params.id),
+        req.body.isActive,
+        req.user!.userId
+      )
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async removeWarehouse(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await MasterService.deleteWarehouseById(Number(req.params.id))
+      res.json({ data: null, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  // Bin Locations
+  async listBins(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const status = req.query.status === 'all' ? 'all' : 'active'
+      const data = await MasterService.findBinsByWarehouse(Number(req.params.id), status)
+      res.json({ data, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async createBin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.createBin(req.body, req.user!.userId)
+      res.status(201).json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateBin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.updateBin(Number(req.params.id), req.body, req.user!.userId)
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async updateBinStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const item = await MasterService.toggleBinStatus(
+        Number(req.params.id),
+        req.body.isActive,
+        req.user!.userId
+      )
+      res.json({ data: item, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async removeBin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await MasterService.deleteBinById(Number(req.params.id))
+      res.json({ data: null, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
 }

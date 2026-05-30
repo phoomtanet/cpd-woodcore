@@ -113,4 +113,88 @@ export const MasterRepository = {
   deleteCategoryById(id: number) {
     return prisma.category.update({ where: { id }, data: { deletedAt: new Date() } })
   },
+
+  // Warehouses
+  findAllWarehouses(status: 'active' | 'all' = 'active') {
+    return prisma.warehouse.findMany({
+      where: status === 'active' ? { isActive: true, deletedAt: null } : { deletedAt: null },
+      orderBy: { id: 'asc' },
+      include: auditInclude,
+    })
+  },
+
+  findWarehouseById(id: number) {
+    return prisma.warehouse.findFirst({ where: { id, deletedAt: null }, include: auditInclude })
+  },
+
+  findWarehouseByCode(code: string) {
+    return prisma.warehouse.findFirst({ where: { code, deletedAt: null } })
+  },
+
+  createWarehouse(data: {
+    code: string
+    name: string
+    shortName?: string
+    address?: string
+    createdById?: number
+  }) {
+    return prisma.warehouse.create({ data })
+  },
+
+  updateWarehouse(
+    id: number,
+    data: {
+      code?: string
+      name?: string
+      shortName?: string
+      address?: string
+      updatedById?: number
+    }
+  ) {
+    return prisma.warehouse.update({ where: { id }, data })
+  },
+
+  updateWarehouseStatus(id: number, isActive: boolean, updatedById?: number) {
+    return prisma.warehouse.update({ where: { id }, data: { isActive, updatedById } })
+  },
+
+  deleteWarehouseById(id: number) {
+    return prisma.warehouse.update({ where: { id }, data: { deletedAt: new Date() } })
+  },
+
+  // Bin Locations
+  findBinsByWarehouse(warehouseId: number, status: 'active' | 'all' = 'active') {
+    return prisma.binLocation.findMany({
+      where:
+        status === 'active'
+          ? { warehouseId, isActive: true, deletedAt: null }
+          : { warehouseId, deletedAt: null },
+      orderBy: { code: 'asc' },
+      include: auditInclude,
+    })
+  },
+
+  findBinById(id: number) {
+    return prisma.binLocation.findFirst({ where: { id, deletedAt: null }, include: auditInclude })
+  },
+
+  findBinByWarehouseAndCode(warehouseId: number, code: string) {
+    return prisma.binLocation.findFirst({ where: { warehouseId, code, deletedAt: null } })
+  },
+
+  createBin(data: { warehouseId: number; code: string; name?: string; createdById?: number }) {
+    return prisma.binLocation.create({ data })
+  },
+
+  updateBin(id: number, data: { code?: string; name?: string; updatedById?: number }) {
+    return prisma.binLocation.update({ where: { id }, data })
+  },
+
+  updateBinStatus(id: number, isActive: boolean, updatedById?: number) {
+    return prisma.binLocation.update({ where: { id }, data: { isActive, updatedById } })
+  },
+
+  deleteBinById(id: number) {
+    return prisma.binLocation.update({ where: { id }, data: { deletedAt: new Date() } })
+  },
 }
