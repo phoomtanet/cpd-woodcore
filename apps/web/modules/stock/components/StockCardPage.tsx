@@ -189,11 +189,6 @@ function StockCardContent() {
       render: (_: unknown, row: StockCardRow) => {
         if (row.type === 'in') return <span style={{ color: '#52c41a' }}>+{row.quantity}</span>
         if (row.type === 'adjust') return <span style={{ color: '#fa8c16' }}>={row.quantity}</span>
-        if (row.type === 'transfer' && selectedBinId == null && selectedWarehouseId != null) {
-          const intraWh = row.warehouse?.id != null && row.warehouse.id === row.toWarehouse?.id
-          if (!intraWh && row.toWarehouse?.id === selectedWarehouseId)
-            return <span style={{ color: '#52c41a' }}>+{row.quantity}</span>
-        }
         return null
       },
     },
@@ -204,11 +199,6 @@ function StockCardContent() {
       align: 'right' as const,
       render: (_: unknown, row: StockCardRow) => {
         if (row.type === 'out') return <span style={{ color: '#ff4d4f' }}>-{row.quantity}</span>
-        if (row.type === 'transfer' && selectedBinId == null && selectedWarehouseId != null) {
-          const intraWh = row.warehouse?.id != null && row.warehouse.id === row.toWarehouse?.id
-          if (!intraWh && row.warehouse?.id === selectedWarehouseId)
-            return <span style={{ color: '#ff4d4f' }}>-{row.quantity}</span>
-        }
         return null
       },
     },
@@ -220,15 +210,17 @@ function StockCardContent() {
       render: (_: unknown, row: StockCardRow) => {
         if (row.type !== 'transfer') return null
         if (selectedBinId != null) {
-          // bin filter: show direction
           if (row.tobin?.id === selectedBinId)
             return <span style={{ color: '#52c41a' }}>+{row.quantity}</span>
           return <span style={{ color: '#ff4d4f' }}>-{row.quantity}</span>
         }
-        // warehouse filter: only intra-wh shows here; inter-wh shows in รับเข้า/เบิกออก
         if (selectedWarehouseId != null) {
           const intraWh = row.warehouse?.id != null && row.warehouse.id === row.toWarehouse?.id
-          if (!intraWh) return null
+          if (!intraWh) {
+            if (row.toWarehouse?.id === selectedWarehouseId)
+              return <span style={{ color: '#52c41a' }}>+{row.quantity}</span>
+            return <span style={{ color: '#ff4d4f' }}>-{row.quantity}</span>
+          }
         }
         return <span style={{ color: '#1677ff' }}>~{row.quantity}</span>
       },
@@ -296,8 +288,18 @@ function StockCardContent() {
   ]
 
   const product = cardData?.product
+  const selectedProductFull = products.find((p) => p.id === selectedId)
+  const warehouseStock =
+    selectedWarehouseId != null && selectedBinId == null
+      ? (selectedProductFull?.stocks?.find((s) => s.warehouseId === selectedWarehouseId)
+          ?.quantity ?? null)
+      : null
   const panelStock =
-    selectedBinId != null && binStock != null ? binStock : (product?.currentStock ?? 0)
+    selectedBinId != null && binStock != null
+      ? binStock
+      : warehouseStock != null
+        ? warehouseStock
+        : (product?.currentStock ?? 0)
   const panelCostValue = panelStock * (product?.costPrice ?? 0)
   const panelSaleValue = panelStock * (product?.salePrice ?? 0)
 
@@ -381,7 +383,11 @@ function StockCardContent() {
           </div>
           <div>
             <div style={{ fontSize: 12, color: '#888' }}>
-              {selectedBinId != null ? 'ยอดคงเหลือ (Bin)' : 'ยอดคงเหลือ'}
+              {selectedBinId != null
+                ? 'ยอดคงเหลือ (Bin)'
+                : selectedWarehouseId != null
+                  ? 'ยอดคงเหลือ (คลัง)'
+                  : 'ยอดคงเหลือ'}
             </div>
             <div>
               <Badge

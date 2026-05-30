@@ -12,7 +12,10 @@
       "PowerShell(Stop-Process -Id 36144 -Force -ErrorAction SilentlyContinue)",
       "PowerShell(Stop-Process -Id 29840 -Force -ErrorAction SilentlyContinue)",
       "PowerShell(try { [System.IO.File]::OpenWrite\\(\"E:\\\\project\\\\cpd-woodcore\\\\apps\\\\web\\\\.next\\\\trace\"\\).Close\\(\\); Write-Host \"File is now FREE\" } catch { Write-Host \"Still locked: $_\" })",
-      "Bash(npx ts-node *)"
+      "Bash(npx ts-node *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)"
     ]
   }
 }
