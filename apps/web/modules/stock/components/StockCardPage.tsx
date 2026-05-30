@@ -251,7 +251,7 @@ function StockCardContent() {
       },
     },
     {
-      title: 'ย้ายมาจาก',
+      title: 'การโอนย้าย',
       key: 'transferOther',
       width: 155,
       render: (_: unknown, row: StockCardRow) => {
