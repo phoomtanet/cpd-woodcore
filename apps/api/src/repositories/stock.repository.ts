@@ -164,6 +164,25 @@ export const StockRepository = {
     })
   },
 
+  async findBinStock(productId: number, binId: number): Promise<number> {
+    const txs = await prisma.stockTransaction.findMany({
+      where: { productId, OR: [{ binId }, { toBinId: binId }] },
+      orderBy: { createdAt: 'asc' },
+      select: { type: true, quantity: true, binId: true, toBinId: true },
+    })
+    let balance = 0
+    for (const tx of txs) {
+      if (tx.type === 'in' && tx.binId === binId) balance += tx.quantity
+      else if (tx.type === 'out' && tx.binId === binId) balance -= tx.quantity
+      else if (tx.type === 'adjust' && tx.binId === binId) balance = tx.quantity
+      else if (tx.type === 'transfer') {
+        if (tx.binId === binId) balance -= tx.quantity
+        if (tx.toBinId === binId) balance += tx.quantity
+      }
+    }
+    return Math.max(0, balance)
+  },
+
   findLowStock(): Promise<Product[]> {
     return prisma.$queryRaw<Product[]>`
       SELECT p.id, p.name, p.sku, p.barcode, p.image,

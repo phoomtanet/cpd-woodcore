@@ -32,6 +32,11 @@ const stockCardQuerySchema = z.object({
   warehouseId: z.string().regex(/^\d+$/, 'warehouseId must be a positive integer').optional(),
 })
 
+const binStockQuerySchema = z.object({
+  productId: z.string().regex(/^\d+$/, 'productId must be a positive integer'),
+  binId: z.string().regex(/^\d+$/, 'binId must be a positive integer'),
+})
+
 const stockInSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().positive(),
@@ -97,6 +102,12 @@ router.get(
   StockController.stockCard
 )
 router.get('/low-alert', authenticate, StockController.stockLowAlert)
+router.get(
+  '/bin-stock',
+  authenticate,
+  validateQuery(binStockQuerySchema),
+  StockController.stockBinStock
+)
 
 router.post(
   '/adjust',

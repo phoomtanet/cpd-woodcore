@@ -42,4 +42,9 @@ export const stockApi = {
 
   getLowAlert: () =>
     api.get<ApiResponse<LowStockProduct[]>>('/stock/low-alert').then((r) => r.data.data),
+
+  getBinStock: (productId: number, binId: number) =>
+    api
+      .get<ApiResponse<number>>('/stock/bin-stock', { params: { productId, binId } })
+      .then((r) => r.data.data),
 }

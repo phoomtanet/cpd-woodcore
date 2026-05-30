@@ -106,6 +106,16 @@ export const StockController = {
     }
   },
 
+  async stockBinStock(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { productId, binId } = req.query
+      const quantity = await StockService.getBinStock(Number(productId), Number(binId))
+      res.json({ data: quantity, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
   async stockLowAlert(_req: Request, res: Response, next: NextFunction) {
     try {
       const products = await StockService.getLowAlert()

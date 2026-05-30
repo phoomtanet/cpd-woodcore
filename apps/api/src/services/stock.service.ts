@@ -96,6 +96,12 @@ export const StockService = {
     return StockRepository.findLowStock()
   },
 
+  async getBinStock(productId: number, binId: number) {
+    const product = await ProductRepository.findById(productId)
+    if (!product) throw new NotFoundError('Product not found')
+    return StockRepository.findBinStock(productId, binId)
+  },
+
   async getStockCard(
     productId: number,
     from?: string,
