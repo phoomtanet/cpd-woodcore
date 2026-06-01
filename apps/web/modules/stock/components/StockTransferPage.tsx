@@ -56,7 +56,7 @@ function StockTransferForm() {
     if (prevFromWhRef.current === selectedFromWarehouseId) return
     prevFromWhRef.current = selectedFromWarehouseId
     form.setFieldValue('fromBinId', undefined)
-    form.setFieldValue('quantity', undefined)
+    form.resetFields(['quantity'])
   }, [selectedFromWarehouseId, form])
 
   const fetchBins = async (
