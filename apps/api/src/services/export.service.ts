@@ -14,6 +14,16 @@ const TX_TYPE_LABEL: Record<string, string> = {
 // UTF-8 BOM so Thai text opens correctly in Excel / Express accounting import.
 const BOM = '﻿'
 
+type BinRef = { code: string; name?: string | null } | null
+
+// Format a transaction's bin location: "A-01" or "A-01 -> A-02" for transfers.
+function formatBin(bin: BinRef, tobin: BinRef, arrow: string): string {
+  if (!bin && !tobin) return ''
+  const from = bin?.code ?? ''
+  if (tobin) return `${from}${arrow}${tobin.code}`
+  return from
+}
+
 type CsvValue = string | number | null | undefined
 
 function csvCell(value: CsvValue): string {
@@ -150,6 +160,7 @@ export const ExportService = {
       { header: 'จำนวน', key: 'quantity', width: 12 },
       { header: 'หน่วย', key: 'unit', width: 10 },
       { header: 'คลัง', key: 'warehouse', width: 16 },
+      { header: 'Bin', key: 'bin', width: 14 },
       { header: 'ผู้บันทึก', key: 'createdBy', width: 16 },
       { header: 'หมายเหตุ', key: 'note', width: 24 },
     ]
@@ -166,6 +177,7 @@ export const ExportService = {
         quantity: tx.quantity,
         unit: tx.product.unit,
         warehouse: tx.warehouse ? `${tx.warehouse.name}${toWh}` : '-',
+        bin: formatBin(tx.bin, tx.tobin, ' → ') || '-',
         createdBy: tx.createdBy?.name ?? '-',
         note: tx.note ?? '',
       })
@@ -194,6 +206,7 @@ export const ExportService = {
         'จำนวน',
         'หน่วย',
         'คลัง',
+        'Bin',
         'ผู้บันทึก',
         'หมายเหตุ',
       ],
@@ -209,6 +222,7 @@ export const ExportService = {
         tx.quantity,
         tx.product.unit,
         tx.warehouse ? `${tx.warehouse.name}${toWh}` : '',
+        formatBin(tx.bin, tx.tobin, ' -> '),
         tx.createdBy?.name ?? '',
         tx.note ?? '',
       ])

@@ -22,12 +22,14 @@ function sendCsv(res: Response, csv: string, filename: string) {
 export const ReportController = {
   async balance(req: Request, res: Response, next: NextFunction) {
     try {
-      const { search, productType, categoryId, warehouseId, status, asOf, format } = req.query
+      const { search, productType, categoryId, warehouseId, binId, status, asOf, format } =
+        req.query
       const result = await ReportService.getBalance({
         search: typeof search === 'string' ? search : undefined,
         productType: typeof productType === 'string' ? productType : undefined,
         categoryId: typeof categoryId === 'string' ? Number(categoryId) : undefined,
         warehouseId: typeof warehouseId === 'string' ? Number(warehouseId) : undefined,
+        binId: typeof binId === 'string' ? Number(binId) : undefined,
         status:
           status === 'active' || status === 'inactive' || status === 'all' ? status : undefined,
         asOf: typeof asOf === 'string' ? asOf : undefined,
@@ -47,11 +49,12 @@ export const ReportController = {
 
   async movement(req: Request, res: Response, next: NextFunction) {
     try {
-      const { type, productId, warehouseId, from, to, format } = req.query
+      const { type, productId, warehouseId, binId, from, to, format } = req.query
       const result = await ReportService.getMovement({
         type: typeof type === 'string' ? (type as TxType) : undefined,
         productId: typeof productId === 'string' ? Number(productId) : undefined,
         warehouseId: typeof warehouseId === 'string' ? Number(warehouseId) : undefined,
+        binId: typeof binId === 'string' ? Number(binId) : undefined,
         from: typeof from === 'string' ? from : undefined,
         to: typeof to === 'string' ? to : undefined,
       })

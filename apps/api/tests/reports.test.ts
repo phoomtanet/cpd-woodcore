@@ -140,6 +140,54 @@ describe('GET /api/reports/balance', () => {
     expect(res.body.data.items[0].quantity).toBe(20) // only what arrived in wh 2
   })
 
+  it('reconstructs bin-level quantity from transaction replay', async () => {
+    mockProductFindMany.mockResolvedValue([MOCK_PRODUCTS[0]])
+    mockTxFindMany.mockResolvedValue([
+      { productId: 1, type: 'in', quantity: 40, binId: 5, toBinId: null },
+      { productId: 1, type: 'out', quantity: 10, binId: 5, toBinId: null },
+      // transfer out of bin 5 into bin 6
+      { productId: 1, type: 'transfer', quantity: 5, binId: 5, toBinId: 6 },
+      // unrelated bin — must be ignored
+      { productId: 1, type: 'in', quantity: 100, binId: 9, toBinId: null },
+    ])
+
+    const res = await request(app)
+      .get('/api/reports/balance?warehouseId=1&binId=5')
+      .set('Authorization', `Bearer ${adminToken}`)
+
+    expect(res.status).toBe(200)
+    expect(mockTxFindMany).toHaveBeenCalledTimes(1)
+    expect(res.body.data.binId).toBe(5)
+    // bin 5: 40 - 10 - 5 = 25
+    expect(res.body.data.items[0].quantity).toBe(25)
+    expect(res.body.data.items[0].costValue).toBe(1250) // 25 * 50
+  })
+
+  it('reconstructs bin-level quantity up to asOf', async () => {
+    mockProductFindMany.mockResolvedValue([MOCK_PRODUCTS[0]])
+    mockTxFindMany.mockResolvedValue([
+      { productId: 1, type: 'in', quantity: 40, binId: 5, toBinId: null },
+      { productId: 1, type: 'adjust', quantity: 12, binId: 5, toBinId: null },
+    ])
+
+    const res = await request(app)
+      .get('/api/reports/balance?binId=5&asOf=2026-06-13T23:59:59%2B07:00')
+      .set('Authorization', `Bearer ${adminToken}`)
+
+    expect(res.status).toBe(200)
+    // createdAt filter applied (asOf given)
+    expect(mockTxFindMany.mock.calls[0][0].where.createdAt.lte).toBeInstanceOf(Date)
+    // adjust sets the bin balance to 12
+    expect(res.body.data.items[0].quantity).toBe(12)
+  })
+
+  it('returns 400 when binId is not numeric', async () => {
+    const res = await request(app)
+      .get('/api/reports/balance?binId=abc')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+
   it('returns 400 when warehouseId is not numeric', async () => {
     const res = await request(app)
       .get('/api/reports/balance?warehouseId=abc')
@@ -232,6 +280,26 @@ describe('GET /api/reports/movement', () => {
     expect(where.OR).toEqual([{ warehouseId: 1 }, { toWarehouseId: 1 }])
     expect(where.createdAt.gte).toBeInstanceOf(Date)
     expect(where.createdAt.lte).toBeInstanceOf(Date)
+  })
+
+  it('filters by binId (OR binId/toBinId) over warehouseId', async () => {
+    mockTxFindMany.mockResolvedValue([])
+
+    const res = await request(app)
+      .get('/api/reports/movement?warehouseId=1&binId=5')
+      .set('Authorization', `Bearer ${adminToken}`)
+
+    expect(res.status).toBe(200)
+    const where = mockTxFindMany.mock.calls[0][0].where
+    // binId takes precedence over warehouseId for the location filter
+    expect(where.OR).toEqual([{ binId: 5 }, { toBinId: 5 }])
+  })
+
+  it('returns 400 when binId is not numeric', async () => {
+    const res = await request(app)
+      .get('/api/reports/movement?binId=abc')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
   })
 
   it('returns 400 when type is invalid', async () => {
@@ -372,7 +440,9 @@ describe('CSV export (?format=csv)', () => {
     expect(res.headers['content-disposition']).toContain('stock-movement')
 
     const lines = res.text.replace(BOM, '').split('\r\n')
-    expect(lines[0]).toBe('ลำดับ,วันที่,ประเภท,SKU,ชื่อสินค้า,จำนวน,หน่วย,คลัง,ผู้บันทึก,หมายเหตุ')
+    expect(lines[0]).toBe(
+      'ลำดับ,วันที่,ประเภท,SKU,ชื่อสินค้า,จำนวน,หน่วย,คลัง,Bin,ผู้บันทึก,หมายเหตุ'
+    )
     expect(lines[1]).toContain('รับเข้า')
     expect(lines[1]).toContain('PAL-001')
     expect(lines[1]).toContain('100')

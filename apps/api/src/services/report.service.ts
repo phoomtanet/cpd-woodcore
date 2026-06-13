@@ -7,6 +7,7 @@ export interface BalanceParams {
   productType?: string
   categoryId?: number
   warehouseId?: number
+  binId?: number
   status?: 'active' | 'inactive' | 'all'
   asOf?: string
 }
@@ -33,15 +34,26 @@ export const ReportService = {
     productType,
     categoryId,
     warehouseId,
+    binId,
     status = 'all',
     asOf,
   }: BalanceParams) {
     const products = await ProductRepository.findAll({ search, productType, categoryId, status })
 
-    // When asOf is given, reconstruct per-warehouse balances from transactions.
+    // Bin-level balances are not stored in ProductStock — reconstruct them from
+    // transaction replay (optionally up to asOf). binId takes precedence over warehouseId.
+    let binBalances: Map<number, number> | null = null
+    // When asOf is given (and no bin filter), reconstruct per-warehouse balances.
     // Map<productId, Map<warehouseId, quantity>>
     let asOfBalances: Map<number, Map<number, number>> | null = null
-    if (asOf) {
+
+    if (binId != null) {
+      const txs = await ReportRepository.findTransactionsUpTo(
+        asOf ? new Date(asOf) : undefined,
+        products.map((p) => p.id)
+      )
+      binBalances = reconstructBinBalances(txs, binId)
+    } else if (asOf) {
       const txs = await ReportRepository.findTransactionsUpTo(
         new Date(asOf),
         products.map((p) => p.id)
@@ -52,7 +64,10 @@ export const ReportService = {
     const items: BalanceItem[] = products.map((p) => {
       const costPrice = Number(p.costPrice)
       const salePrice = Number(p.salePrice)
-      const quantity = resolveQuantity(p, warehouseId, asOfBalances)
+      const quantity =
+        binBalances != null
+          ? (binBalances.get(p.id) ?? 0)
+          : resolveQuantity(p, warehouseId, asOfBalances)
       return {
         productId: p.id,
         sku: p.sku,
@@ -75,19 +90,27 @@ export const ReportService = {
       totalSaleValue: items.reduce((acc, i) => acc + i.saleValue, 0),
     }
 
-    return { asOf: asOf ?? null, warehouseId: warehouseId ?? null, items, summary }
+    return {
+      asOf: asOf ?? null,
+      warehouseId: warehouseId ?? null,
+      binId: binId ?? null,
+      items,
+      summary,
+    }
   },
 
   async getMovement({
     type,
     productId,
     warehouseId,
+    binId,
     from,
     to,
   }: {
     type?: TxType
     productId?: number
     warehouseId?: number
+    binId?: number
     from?: string
     to?: string
   }) {
@@ -95,6 +118,7 @@ export const ReportService = {
       type,
       productId,
       warehouseId,
+      binId,
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
     })
@@ -164,6 +188,35 @@ function reconstructBalances(
       if (toWh !== wh) {
         whMap.set(wh, current - tx.quantity)
         whMap.set(toWh, (whMap.get(toWh) ?? 0) + tx.quantity)
+      }
+    }
+  }
+  return result
+}
+
+// Replay transactions chronologically into per-product balances for a single bin.
+// ProductStock has no bin dimension, so this is the only source of truth per bin.
+function reconstructBinBalances(
+  txs: {
+    productId: number
+    type: string
+    quantity: number
+    binId: number | null
+    toBinId: number | null
+  }[],
+  binId: number
+): Map<number, number> {
+  const result = new Map<number, number>()
+  for (const tx of txs) {
+    const current = result.get(tx.productId) ?? 0
+    if (tx.type === 'in' && tx.binId === binId) result.set(tx.productId, current + tx.quantity)
+    else if (tx.type === 'out' && tx.binId === binId)
+      result.set(tx.productId, current - tx.quantity)
+    else if (tx.type === 'adjust' && tx.binId === binId) result.set(tx.productId, tx.quantity)
+    else if (tx.type === 'transfer') {
+      if (tx.binId === binId) result.set(tx.productId, current - tx.quantity)
+      if (tx.toBinId === binId) {
+        result.set(tx.productId, (result.get(tx.productId) ?? 0) + tx.quantity)
       }
     }
   }
