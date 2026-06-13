@@ -15,7 +15,15 @@ import dashboardRouter from './routes/dashboard'
 
 const app = express()
 
-app.use(cors())
+const corsOptions: cors.CorsOptions = {
+  origin: true, // reflect request origin
+  credentials: true,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Authorization', 'Content-Type'],
+}
+app.use(cors(corsOptions))
+// Answer every preflight explicitly so Access-Control-Allow-Methods is always sent.
+app.options('*', cors(corsOptions))
 app.use(express.json())
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
