@@ -7,7 +7,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:seed-usage": "ts-node prisma/seed-usage.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
