@@ -11,6 +11,7 @@ import rolesRouter from './routes/roles'
 import masterRouter from './routes/master'
 import stockRouter from './routes/stock'
 import reportsRouter from './routes/reports'
+import dashboardRouter from './routes/dashboard'
 
 const app = express()
 
@@ -61,6 +62,7 @@ app.use('/api/roles', rolesRouter)
 app.use('/api/master', masterRouter)
 app.use('/api/stock', stockRouter)
 app.use('/api/reports', reportsRouter)
+app.use('/api/dashboard', dashboardRouter)
 
 // Global error handler — must be registered last
 app.use(errorHandler)

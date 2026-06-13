@@ -21,6 +21,7 @@ export interface BalanceItem {
   category: string | null
   costPrice: number
   salePrice: number
+  minStock: number
   quantity: number
   costValue: number
   saleValue: number
@@ -77,6 +78,7 @@ export const ReportService = {
         category: p.category?.name ?? null,
         costPrice,
         salePrice,
+        minStock: p.minStock,
         quantity,
         costValue: quantity * costPrice,
         saleValue: quantity * salePrice,
