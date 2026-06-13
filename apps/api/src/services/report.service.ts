@@ -1,5 +1,6 @@
 import { ProductRepository } from '../repositories/product.repository'
 import { ReportRepository } from '../repositories/report.repository'
+import type { TxType } from '@prisma/client'
 
 export interface BalanceParams {
   search?: string
@@ -76,6 +77,43 @@ export const ReportService = {
 
     return { asOf: asOf ?? null, warehouseId: warehouseId ?? null, items, summary }
   },
+
+  async getMovement({
+    type,
+    productId,
+    warehouseId,
+    from,
+    to,
+  }: {
+    type?: TxType
+    productId?: number
+    warehouseId?: number
+    from?: string
+    to?: string
+  }) {
+    const transactions = await ReportRepository.findMovements({
+      type,
+      productId,
+      warehouseId,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+    })
+
+    const summary = {
+      totalRecords: transactions.length,
+      totalIn: sumQty(transactions, 'in'),
+      totalOut: sumQty(transactions, 'out'),
+      totalAdjust: sumQty(transactions, 'adjust'),
+      totalTransfer: sumQty(transactions, 'transfer'),
+      netChange: sumQty(transactions, 'in') - sumQty(transactions, 'out'),
+    }
+
+    return { items: transactions, summary }
+  },
+}
+
+function sumQty(txs: { type: string; quantity: number }[], type: string): number {
+  return txs.reduce((acc, tx) => (tx.type === type ? acc + tx.quantity : acc), 0)
 }
 
 type ProductWithStocks = Awaited<ReturnType<typeof ProductRepository.findAll>>[number]

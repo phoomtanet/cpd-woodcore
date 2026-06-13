@@ -153,3 +153,97 @@ describe('GET /api/reports/balance', () => {
     expect(res.status).toBe(400)
   })
 })
+
+describe('GET /api/reports/movement', () => {
+  const MOCK_MOVEMENTS = [
+    {
+      id: 3,
+      type: 'out',
+      quantity: 30,
+      productId: 1,
+      createdAt: new Date('2026-06-12T10:00:00Z'),
+      product: { id: 1, name: 'ไม้พาเลท', sku: 'PAL-001', unit: 'แผ่น' },
+      createdBy: { id: 1, name: 'admin' },
+      warehouse: { id: 1, name: 'คลังหลัก', shortName: 'หลัก' },
+      toWarehouse: null,
+    },
+    {
+      id: 2,
+      type: 'in',
+      quantity: 100,
+      productId: 1,
+      createdAt: new Date('2026-06-11T10:00:00Z'),
+      product: { id: 1, name: 'ไม้พาเลท', sku: 'PAL-001', unit: 'แผ่น' },
+      createdBy: { id: 1, name: 'admin' },
+      warehouse: { id: 1, name: 'คลังหลัก', shortName: 'หลัก' },
+      toWarehouse: null,
+    },
+    {
+      id: 1,
+      type: 'in',
+      quantity: 50,
+      productId: 2,
+      createdAt: new Date('2026-06-10T10:00:00Z'),
+      product: { id: 2, name: 'ตะปู', sku: 'WD-002', unit: 'กก.' },
+      createdBy: { id: 2, name: 'manager' },
+      warehouse: { id: 1, name: 'คลังหลัก', shortName: 'หลัก' },
+      toWarehouse: null,
+    },
+  ]
+
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/reports/movement')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns movements with in/out summary', async () => {
+    mockTxFindMany.mockResolvedValue(MOCK_MOVEMENTS)
+
+    const res = await request(app)
+      .get('/api/reports/movement')
+      .set('Authorization', `Bearer ${staffToken}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.items).toHaveLength(3)
+    expect(res.body.data.summary).toEqual({
+      totalRecords: 3,
+      totalIn: 150, // 100 + 50
+      totalOut: 30,
+      totalAdjust: 0,
+      totalTransfer: 0,
+      netChange: 120, // 150 - 30
+    })
+  })
+
+  it('passes date and type filters to the query', async () => {
+    mockTxFindMany.mockResolvedValue([MOCK_MOVEMENTS[1], MOCK_MOVEMENTS[2]])
+
+    const res = await request(app)
+      .get(
+        '/api/reports/movement?type=in&from=2026-06-01T00:00:00%2B07:00&to=2026-06-30T23:59:59%2B07:00&productId=1&warehouseId=1'
+      )
+      .set('Authorization', `Bearer ${adminToken}`)
+
+    expect(res.status).toBe(200)
+    const where = mockTxFindMany.mock.calls[0][0].where
+    expect(where.type).toBe('in')
+    expect(where.productId).toBe(1)
+    expect(where.OR).toEqual([{ warehouseId: 1 }, { toWarehouseId: 1 }])
+    expect(where.createdAt.gte).toBeInstanceOf(Date)
+    expect(where.createdAt.lte).toBeInstanceOf(Date)
+  })
+
+  it('returns 400 when type is invalid', async () => {
+    const res = await request(app)
+      .get('/api/reports/movement?type=foo')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when from is not a valid datetime', async () => {
+    const res = await request(app)
+      .get('/api/reports/movement?from=2026-06-01')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+})

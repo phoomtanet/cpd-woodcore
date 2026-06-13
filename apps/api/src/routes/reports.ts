@@ -26,6 +26,15 @@ const balanceQuerySchema = z.object({
   asOf: z.string().datetime({ offset: true }).optional(),
 })
 
+const movementQuerySchema = z.object({
+  type: z.enum(['in', 'out', 'adjust', 'transfer']).optional(),
+  productId: z.string().regex(/^\d+$/, 'productId must be a positive integer').optional(),
+  warehouseId: z.string().regex(/^\d+$/, 'warehouseId must be a positive integer').optional(),
+  from: z.string().datetime({ offset: true }).optional(),
+  to: z.string().datetime({ offset: true }).optional(),
+})
+
 router.get('/balance', authenticate, validateQuery(balanceQuerySchema), ReportController.balance)
+router.get('/movement', authenticate, validateQuery(movementQuerySchema), ReportController.movement)
 
 export default router
