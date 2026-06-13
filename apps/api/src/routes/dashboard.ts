@@ -31,12 +31,36 @@ const recentQuerySchema = z.object({
   limit: intParam('limit'),
 })
 
+const trendQuerySchema = z.object({
+  warehouseId: intParam('warehouseId'),
+  binId: intParam('binId'),
+  days: intParam('days'),
+})
+
+const breakdownQuerySchema = z.object({
+  warehouseId: intParam('warehouseId'),
+  binId: intParam('binId'),
+  by: z.enum(['type', 'category']).optional(),
+})
+
 router.get('/summary', authenticate, validateQuery(summaryQuerySchema), DashboardController.summary)
 router.get(
   '/recent-transactions',
   authenticate,
   validateQuery(recentQuerySchema),
   DashboardController.recentTransactions
+)
+router.get(
+  '/movement-trend',
+  authenticate,
+  validateQuery(trendQuerySchema),
+  DashboardController.movementTrend
+)
+router.get(
+  '/value-breakdown',
+  authenticate,
+  validateQuery(breakdownQuerySchema),
+  DashboardController.valueBreakdown
 )
 
 export default router

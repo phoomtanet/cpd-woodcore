@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Row, Col, Select, Space, Table, Tag, Typography } from 'antd'
+import { Row, Col, Select, Space, Table, Tag, Typography, Segmented } from 'antd'
 import {
   AppstoreOutlined,
   DollarOutlined,
@@ -17,8 +17,11 @@ import { stockApi } from '@/modules/stock/services/stockApi'
 import type { LowStockProduct } from '@/modules/stock/types'
 import { formatNumber, formatDate } from '@/lib/utils'
 import { useDashboard } from '../hooks/useDashboard'
+import { useDashboardCharts } from '../hooks/useDashboardCharts'
 import StatsCard from './StatsCard'
-import type { RecentTransaction } from '../types'
+import MovementTrendChart from './MovementTrendChart'
+import ValueBreakdownChart from './ValueBreakdownChart'
+import type { RecentTransaction, BreakdownBy } from '../types'
 
 const TYPE_META: Record<string, { label: string; color: string }> = {
   in: { label: 'รับเข้า', color: 'green' },
@@ -40,6 +43,8 @@ export default function DashboardPage() {
   const { filter, setFilter, summary, recent, loading } = useDashboard()
   const { warehouses } = useMasterStore()
   const bins = useBins(filter.warehouseId)
+  const [breakdownBy, setBreakdownBy] = useState<BreakdownBy>('type')
+  const { trend, breakdown, loading: chartsLoading } = useDashboardCharts(filter, breakdownBy)
   const [lowStock, setLowStock] = useState<LowStockProduct[]>([])
 
   useEffect(() => {
@@ -218,6 +223,55 @@ export default function DashboardPage() {
             icon={<HomeOutlined />}
             loading={loading}
           />
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={14}>
+          <Typography.Title level={5}>แนวโน้มความเคลื่อนไหว (30 วัน)</Typography.Title>
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid #f0f0f0',
+              borderRadius: 8,
+              padding: 12,
+            }}
+          >
+            <MovementTrendChart data={trend} loading={chartsLoading} />
+          </div>
+        </Col>
+        <Col xs={24} lg={10}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}
+          >
+            <Typography.Title level={5} style={{ margin: 0 }}>
+              สัดส่วนมูลค่าต้นทุน
+            </Typography.Title>
+            <Segmented
+              size="small"
+              value={breakdownBy}
+              onChange={(v: string | number) => setBreakdownBy(v as BreakdownBy)}
+              options={[
+                { label: 'ตามประเภท', value: 'type' },
+                { label: 'ตามหมวดหมู่', value: 'category' },
+              ]}
+            />
+          </div>
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid #f0f0f0',
+              borderRadius: 8,
+              padding: 12,
+            }}
+          >
+            <ValueBreakdownChart data={breakdown} loading={chartsLoading} />
+          </div>
         </Col>
       </Row>
 

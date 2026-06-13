@@ -28,3 +28,20 @@ export interface DashboardFilter {
   warehouseId?: number
   binId?: number
 }
+
+export interface MovementTrendPoint {
+  date: string
+  in: number
+  out: number
+  transfer: number
+}
+
+export interface ValueBreakdownItem {
+  key: string
+  label: string
+  costValue: number
+  saleValue: number
+  quantity: number
+}
+
+export type BreakdownBy = 'type' | 'category'

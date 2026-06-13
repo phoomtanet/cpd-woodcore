@@ -15,13 +15,10 @@ export const DashboardRepository = {
   // Latest transactions, optionally scoped to a warehouse / bin. binId takes
   // precedence over warehouseId for the location filter (matches reports).
   findRecentTransactions({ warehouseId, binId, limit = 10 }: RecentTxFilter) {
-    const locationOr = binId
-      ? [{ binId }, { toBinId: binId }]
-      : warehouseId
-        ? [{ warehouseId }, { toWarehouseId: warehouseId }]
-        : undefined
     return prisma.stockTransaction.findMany({
-      where: { ...(locationOr && { OR: locationOr }) },
+      where: {
+        ...(locationWhere(warehouseId, binId) && { OR: locationWhere(warehouseId, binId) }),
+      },
       include: {
         product: { select: { id: true, name: true, sku: true, unit: true } },
         createdBy: { select: { id: true, name: true } },
@@ -34,4 +31,25 @@ export const DashboardRepository = {
       take: limit,
     })
   },
+
+  // Transactions from `from` onward, scoped to warehouse / bin — used to build
+  // the daily movement trend (aggregated in the service).
+  findTransactionsFrom(from: Date, { warehouseId, binId }: RecentTxFilter) {
+    const or = locationWhere(warehouseId, binId)
+    return prisma.stockTransaction.findMany({
+      where: {
+        createdAt: { gte: from },
+        ...(or && { OR: or }),
+      },
+      select: { createdAt: true, type: true, quantity: true },
+      orderBy: { createdAt: 'asc' },
+    })
+  },
+}
+
+// binId takes precedence over warehouseId for the location OR filter.
+function locationWhere(warehouseId?: number, binId?: number) {
+  if (binId) return [{ binId }, { toBinId: binId }]
+  if (warehouseId) return [{ warehouseId }, { toWarehouseId: warehouseId }]
+  return undefined
 }

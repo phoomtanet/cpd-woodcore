@@ -31,4 +31,30 @@ export const DashboardController = {
       next(err)
     }
   },
+
+  async movementTrend(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { warehouseId, binId, days } = req.query
+      const result = await DashboardService.getMovementTrend(
+        { warehouseId: toNumber(warehouseId), binId: toNumber(binId) },
+        toNumber(days) ?? 30
+      )
+      res.json({ data: result, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async valueBreakdown(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { warehouseId, binId, by } = req.query
+      const result = await DashboardService.getValueBreakdown(
+        { warehouseId: toNumber(warehouseId), binId: toNumber(binId) },
+        by === 'category' ? 'category' : 'type'
+      )
+      res.json({ data: result, message: 'ok' })
+    } catch (err) {
+      next(err)
+    }
+  },
 }

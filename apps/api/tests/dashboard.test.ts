@@ -178,3 +178,88 @@ describe('GET /api/dashboard/recent-transactions', () => {
     expect(args.where.OR).toEqual([{ binId: 5 }, { toBinId: 5 }])
   })
 })
+
+describe('GET /api/dashboard/movement-trend', () => {
+  it('returns 401 when no token', async () => {
+    const res = await request(app).get('/api/dashboard/movement-trend')
+    expect(res.status).toBe(401)
+  })
+
+  it('fills every day with zeros and aggregates by type', async () => {
+    // two transactions today (Asia/Bangkok) → land in the last bucket
+    mockTxFindMany.mockResolvedValue([
+      { createdAt: new Date(), type: 'in', quantity: 40 },
+      { createdAt: new Date(), type: 'out', quantity: 15 },
+    ])
+
+    const res = await request(app)
+      .get('/api/dashboard/movement-trend?days=7')
+      .set('Authorization', `Bearer ${staffToken}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(7) // continuous axis, zero-filled
+    // totals across all days equal the input regardless of bucket
+    const totalIn = res.body.data.reduce((a: number, d: { in: number }) => a + d.in, 0)
+    const totalOut = res.body.data.reduce((a: number, d: { out: number }) => a + d.out, 0)
+    expect(totalIn).toBe(40)
+    expect(totalOut).toBe(15)
+    // query restricted to a date window
+    expect(mockTxFindMany.mock.calls[0][0].where.createdAt.gte).toBeInstanceOf(Date)
+  })
+
+  it('scopes to bin (binId precedence) and defaults to 30 days', async () => {
+    mockTxFindMany.mockResolvedValue([])
+
+    const res = await request(app)
+      .get('/api/dashboard/movement-trend?warehouseId=1&binId=5')
+      .set('Authorization', `Bearer ${adminToken}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(30)
+    expect(mockTxFindMany.mock.calls[0][0].where.OR).toEqual([{ binId: 5 }, { toBinId: 5 }])
+  })
+
+  it('returns 400 when days is not numeric', async () => {
+    const res = await request(app)
+      .get('/api/dashboard/movement-trend?days=abc')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /api/dashboard/value-breakdown', () => {
+  it('groups stock value by product type', async () => {
+    mockProductFindMany.mockResolvedValue(MOCK_PRODUCTS) // both raw
+
+    const res = await request(app)
+      .get('/api/dashboard/value-breakdown?by=type')
+      .set('Authorization', `Bearer ${staffToken}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1) // both products are 'raw'
+    const raw = res.body.data[0]
+    expect(raw.key).toBe('raw')
+    expect(raw.costValue).toBe(1550) // 1500 + 50
+    expect(raw.quantity).toBe(35) // 30 + 5
+  })
+
+  it('groups by category and labels missing category', async () => {
+    mockProductFindMany.mockResolvedValue(MOCK_PRODUCTS)
+
+    const res = await request(app)
+      .get('/api/dashboard/value-breakdown?by=category')
+      .set('Authorization', `Bearer ${adminToken}`)
+
+    expect(res.status).toBe(200)
+    // product 1 → 'พาเลท', product 2 → null → 'ไม่มีหมวดหมู่'
+    const labels = res.body.data.map((g: { label: string }) => g.label).sort()
+    expect(labels).toEqual(['พาเลท', 'ไม่มีหมวดหมู่'])
+  })
+
+  it('returns 400 when by is invalid', async () => {
+    const res = await request(app)
+      .get('/api/dashboard/value-breakdown?by=foo')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+})
