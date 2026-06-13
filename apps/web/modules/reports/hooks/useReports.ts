@@ -1,26 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { reportsApi } from '../services/reportsApi'
-import { masterApi } from '@/modules/master/services/masterApi'
-import type { BinLocationItem } from '@/types'
 import type { BalanceReport, BalanceFilter, MovementReport, MovementFilter } from '../types'
 
-// Active bins for a warehouse — empty when no warehouse selected.
-export function useBins(warehouseId?: number) {
-  const [bins, setBins] = useState<BinLocationItem[]>([])
-
-  useEffect(() => {
-    if (!warehouseId) {
-      setBins([])
-      return
-    }
-    masterApi
-      .getBinsByWarehouse(warehouseId, 'active')
-      .then(setBins)
-      .catch(() => setBins([]))
-  }, [warehouseId])
-
-  return bins
-}
+// Re-exported from shared so existing imports keep working.
+export { useBins } from '@/shared/hooks/useBins'
 
 export function useBalanceReport() {
   const [filter, setFilter] = useState<BalanceFilter>({ status: 'all' })
