@@ -1,4 +1,22 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cpd_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cpd_woodcore
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d cpd_woodcore']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
@@ -6,12 +24,15 @@ services:
     container_name: cpd_api
     restart: unless-stopped
     ports:
-      - "3061:4000"
+      - '3061:4000'
     env_file:
       - .env
     volumes:
       - ./apps/api/src:/app/apps/api/src
       - ./packages/db:/app/packages/db
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   web:
     build:
@@ -20,33 +41,11 @@ services:
     container_name: cpd_web
     restart: unless-stopped
     ports:
-      - "3060:3000"
+      - '3060:3000'
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3061
+      NEXT_PUBLIC_API_URL: http://localhost:3061/api
     depends_on:
       - api
 
-# หากต้องการรัน PostgreSQL local (dev offline):
-# เปิด comment ด้านล่าง แล้วเปลี่ยน DATABASE_URL ใน .env เป็น
-# postgresql://postgres:postgres@postgres:5432/cpd_woodcore
-
-#  postgres:
-#    image: postgres:16-alpine
-#    container_name: cpd_postgres
-#    restart: unless-stopped
-#    environment:
-#      POSTGRES_DB: cpd_woodcore
-#      POSTGRES_USER: postgres
-#      POSTGRES_PASSWORD: postgres
-#    ports:
-#      - "5432:5432"
-#    volumes:
-#      - postgres_data:/var/lib/postgresql/data
-#    healthcheck:
-#      test: ["CMD-SHELL", "pg_isready -U postgres -d cpd_woodcore"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
-
-# volumes:
-#   postgres_data:
+volumes:
+  postgres_data:

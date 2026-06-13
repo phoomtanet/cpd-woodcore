@@ -10,6 +10,7 @@ import rolePermissionsRouter from './routes/role-permissions'
 import rolesRouter from './routes/roles'
 import masterRouter from './routes/master'
 import stockRouter from './routes/stock'
+import reportsRouter from './routes/reports'
 
 const app = express()
 
@@ -34,6 +35,7 @@ app.get('/', (_req, res) => {
       stock:
         'POST /api/stock/in|out|adjust|transfer · GET /api/stock/card/:id · GET /api/stock/history · GET /api/stock/low-alert',
       master: 'GET|POST|PUT|DELETE|PATCH /api/master/product-types|units|categories',
+      reports: 'GET /api/reports/balance',
       users: 'GET|POST /api/users · PUT|DELETE /api/users/:id',
       roles: 'GET|POST|PUT|DELETE /api/roles',
       permissions: 'GET /api/role-permissions · PUT /api/role-permissions/:role/:menuKey',
@@ -58,6 +60,7 @@ app.use('/api/role-permissions', rolePermissionsRouter)
 app.use('/api/roles', rolesRouter)
 app.use('/api/master', masterRouter)
 app.use('/api/stock', stockRouter)
+app.use('/api/reports', reportsRouter)
 
 // Global error handler — must be registered last
 app.use(errorHandler)
