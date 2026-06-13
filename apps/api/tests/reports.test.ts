@@ -1,5 +1,6 @@
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
+import ExcelJS from 'exceljs'
 import app from '../src/app'
 
 const SECRET = process.env.JWT_SECRET ?? ''
@@ -245,5 +246,159 @@ describe('GET /api/reports/movement', () => {
       .get('/api/reports/movement?from=2026-06-01')
       .set('Authorization', `Bearer ${staffToken}`)
     expect(res.status).toBe(400)
+  })
+})
+
+describe('Excel export (?format=xlsx)', () => {
+  const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+  it('exports stock balance as a valid .xlsx with data', async () => {
+    mockProductFindMany.mockResolvedValue(MOCK_PRODUCTS)
+
+    const res = await request(app)
+      .get('/api/reports/balance?format=xlsx')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .responseType('blob')
+
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toContain(XLSX_MIME)
+    expect(res.headers['content-disposition']).toContain('attachment')
+    expect(res.headers['content-disposition']).toContain('stock-balance')
+
+    // Parse the returned workbook and verify content
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(res.body)
+    const ws = wb.getWorksheet('Stock Balance')
+    expect(ws).toBeDefined()
+    expect(ws!.getRow(1).getCell(1).value).toBe('ลำดับ')
+    // first data row = product 1
+    expect(ws!.getRow(2).getCell(2).value).toBe('PAL-001')
+    expect(ws!.getRow(2).getCell(7).value).toBe(30) // quantity
+    expect(ws!.getRow(2).getCell(9).value).toBe(1500) // costValue
+  })
+
+  it('exports stock movement as a valid .xlsx', async () => {
+    mockTxFindMany.mockResolvedValue([
+      {
+        id: 1,
+        type: 'in',
+        quantity: 100,
+        productId: 1,
+        note: 'รับเข้าล็อตแรก',
+        createdAt: new Date('2026-06-11T10:00:00Z'),
+        product: { id: 1, name: 'ไม้พาเลท', sku: 'PAL-001', unit: 'แผ่น' },
+        createdBy: { id: 1, name: 'admin' },
+        warehouse: { id: 1, name: 'คลังหลัก', shortName: 'หลัก' },
+        toWarehouse: null,
+      },
+    ])
+
+    const res = await request(app)
+      .get('/api/reports/movement?format=xlsx')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .responseType('blob')
+
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toContain(XLSX_MIME)
+    expect(res.headers['content-disposition']).toContain('stock-movement')
+
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(res.body)
+    const ws = wb.getWorksheet('Stock Movement')
+    expect(ws).toBeDefined()
+    expect(ws!.getRow(1).getCell(3).value).toBe('ประเภท')
+    expect(ws!.getRow(2).getCell(3).value).toBe('รับเข้า') // type label
+    expect(ws!.getRow(2).getCell(4).value).toBe('PAL-001')
+    expect(ws!.getRow(2).getCell(6).value).toBe(100) // quantity
+  })
+
+  it('returns 400 when format is invalid', async () => {
+    const res = await request(app)
+      .get('/api/reports/balance?format=pdf')
+      .set('Authorization', `Bearer ${staffToken}`)
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('CSV export (?format=csv)', () => {
+  const BOM = '﻿'
+
+  it('exports stock balance as CSV with BOM and correct rows', async () => {
+    mockProductFindMany.mockResolvedValue(MOCK_PRODUCTS)
+
+    const res = await request(app)
+      .get('/api/reports/balance?format=csv')
+      .set('Authorization', `Bearer ${staffToken}`)
+
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toContain('text/csv')
+    expect(res.headers['content-disposition']).toContain('attachment')
+    expect(res.headers['content-disposition']).toContain('stock-balance')
+    expect(res.headers['content-disposition']).toContain('.csv')
+
+    expect(res.text.startsWith(BOM)).toBe(true)
+    const lines = res.text.replace(BOM, '').split('\r\n')
+    expect(lines[0]).toBe(
+      'ลำดับ,SKU,ชื่อสินค้า,ประเภท,หมวดหมู่,หน่วย,คงเหลือ,ราคาทุน,มูลค่าทุน,ราคาขาย,มูลค่าขาย'
+    )
+    // product 1: quantity 30, costValue 1500, saleValue 2400
+    expect(lines[1]).toBe('1,PAL-001,ไม้พาเลท,raw,พาเลท,แผ่น,30,50,1500,80,2400')
+    // total row at the end
+    expect(lines[lines.length - 1]).toContain('รวม')
+  })
+
+  it('exports stock movement as CSV', async () => {
+    mockTxFindMany.mockResolvedValue([
+      {
+        id: 1,
+        type: 'in',
+        quantity: 100,
+        productId: 1,
+        note: 'ล็อตแรก',
+        createdAt: new Date('2026-06-11T10:00:00Z'),
+        product: { id: 1, name: 'ไม้พาเลท', sku: 'PAL-001', unit: 'แผ่น' },
+        createdBy: { id: 1, name: 'admin' },
+        warehouse: { id: 1, name: 'คลังหลัก', shortName: 'หลัก' },
+        toWarehouse: null,
+      },
+    ])
+
+    const res = await request(app)
+      .get('/api/reports/movement?format=csv')
+      .set('Authorization', `Bearer ${adminToken}`)
+
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toContain('text/csv')
+    expect(res.headers['content-disposition']).toContain('stock-movement')
+
+    const lines = res.text.replace(BOM, '').split('\r\n')
+    expect(lines[0]).toBe('ลำดับ,วันที่,ประเภท,SKU,ชื่อสินค้า,จำนวน,หน่วย,คลัง,ผู้บันทึก,หมายเหตุ')
+    expect(lines[1]).toContain('รับเข้า')
+    expect(lines[1]).toContain('PAL-001')
+    expect(lines[1]).toContain('100')
+  })
+
+  it('escapes fields containing commas with double quotes', async () => {
+    mockTxFindMany.mockResolvedValue([
+      {
+        id: 1,
+        type: 'in',
+        quantity: 5,
+        productId: 1,
+        note: 'รับเข้า, ของดี',
+        createdAt: new Date('2026-06-11T10:00:00Z'),
+        product: { id: 1, name: 'ไม้พาเลท', sku: 'PAL-001', unit: 'แผ่น' },
+        createdBy: { id: 1, name: 'admin' },
+        warehouse: { id: 1, name: 'คลังหลัก', shortName: 'หลัก' },
+        toWarehouse: null,
+      },
+    ])
+
+    const res = await request(app)
+      .get('/api/reports/movement?format=csv')
+      .set('Authorization', `Bearer ${adminToken}`)
+
+    expect(res.status).toBe(200)
+    expect(res.text).toContain('"รับเข้า, ของดี"')
   })
 })

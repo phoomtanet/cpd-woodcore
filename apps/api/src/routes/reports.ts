@@ -17,6 +17,8 @@ function validateQuery(schema: z.ZodSchema) {
   }
 }
 
+const formatSchema = z.enum(['json', 'xlsx', 'csv']).optional()
+
 const balanceQuerySchema = z.object({
   search: z.string().optional(),
   productType: z.string().optional(),
@@ -24,6 +26,7 @@ const balanceQuerySchema = z.object({
   warehouseId: z.string().regex(/^\d+$/, 'warehouseId must be a positive integer').optional(),
   status: z.enum(['active', 'inactive', 'all']).optional(),
   asOf: z.string().datetime({ offset: true }).optional(),
+  format: formatSchema,
 })
 
 const movementQuerySchema = z.object({
@@ -32,6 +35,7 @@ const movementQuerySchema = z.object({
   warehouseId: z.string().regex(/^\d+$/, 'warehouseId must be a positive integer').optional(),
   from: z.string().datetime({ offset: true }).optional(),
   to: z.string().datetime({ offset: true }).optional(),
+  format: formatSchema,
 })
 
 router.get('/balance', authenticate, validateQuery(balanceQuerySchema), ReportController.balance)
